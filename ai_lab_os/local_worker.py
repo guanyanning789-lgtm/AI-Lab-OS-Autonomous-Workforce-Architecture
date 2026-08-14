@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 from ai_lab_os.brain_client import BrainClient, BrainRepairRequest
 from ai_lab_os.worker_protocol import WorkerResult, WorkerTask, load_task, write_result
+
+
+RUNTIME_ARTIFACT_DIRS = {"__pycache__", ".pytest_cache"}
 
 
 def _run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -29,7 +33,23 @@ def _safe_pytest_argv(command: str) -> list[str]:
     return [sys.executable, "-m", "pytest", *parts[3:]]
 
 
+def _clear_runtime_artifacts(repository: Path) -> None:
+    """Remove disposable Python test caches before verification.
+
+    Repair can rewrite a module within the same filesystem timestamp window
+    while keeping the same file size. On Windows, an existing ``.pyc`` may
+    then look current even though the source changed, causing the verification
+    subprocess to execute stale bytecode. These directories are generated
+    artifacts, so the worker removes them before every verification run.
+    """
+    for directory in repository.rglob("*"):
+        if directory.is_dir() and directory.name in RUNTIME_ARTIFACT_DIRS:
+            shutil.rmtree(directory, ignore_errors=True)
+
+
 def _run_tests(task: WorkerTask, repository: Path) -> tuple[bool, str, str]:
+    _clear_runtime_artifacts(repository)
+
     stdout_parts: list[str] = []
     stderr_parts: list[str] = []
     for command in task.tests:
@@ -45,10 +65,16 @@ def _changed_files(repository: Path) -> list[str]:
     completed = _run(["git", "status", "--porcelain"], cwd=repository)
     if completed.returncode != 0:
         return []
+
     changed: list[str] = []
     for line in completed.stdout.splitlines():
-        if len(line) >= 4:
-            changed.append(line[3:].strip())
+        if len(line) < 4:
+            continue
+        path = line[3:].strip().replace("\\", "/")
+        parts = Path(path).parts
+        if any(part in RUNTIME_ARTIFACT_DIRS for part in parts):
+            continue
+        changed.append(path)
     return changed
 
 
