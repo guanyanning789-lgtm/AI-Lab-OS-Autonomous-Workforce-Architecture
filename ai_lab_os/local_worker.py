@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from ai_lab_os.brain_client import BrainClient, BrainRepairRequest
+from ai_lab_os.result_publisher import publish_result_file
 from ai_lab_os.worker_protocol import WorkerResult, WorkerTask, load_task, write_result
 
 
@@ -145,6 +146,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="AI Lab OS local worker")
     parser.add_argument("task_file")
     parser.add_argument("--result", required=True)
+    parser.add_argument(
+        "--publish-result",
+        action="store_true",
+        help="commit and push only the generated results/ file on the current branch",
+    )
     args = parser.parse_args()
 
     task = load_task(args.task_file)
@@ -157,6 +163,17 @@ def main() -> int:
     print(f"CHANGED FILES = {', '.join(result.changed_files)}")
     if result.error:
         print(f"ERROR = {result.error}")
+
+    if args.publish_result:
+        published = publish_result_file(args.result)
+        print(f"RESULT COMMITTED = {published.committed}")
+        print(f"RESULT PUSHED = {published.pushed}")
+        print(f"RESULT BRANCH = {published.branch}")
+        if published.commit_sha:
+            print(f"RESULT COMMIT = {published.commit_sha}")
+        if published.message:
+            print(f"RESULT PUBLISH MESSAGE = {published.message}")
+
     return 0 if result.tests_passed else 1
 
 
