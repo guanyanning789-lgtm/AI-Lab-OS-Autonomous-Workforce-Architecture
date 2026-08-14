@@ -10,6 +10,8 @@ class WorkerTask:
     task_id: str
     repository_path: str
     branch: str
+    goal: str = ""
+    success_criteria: tuple[str, ...] = ()
     tests: tuple[str, ...] = ()
     allow_cline_repair: bool = False
     allowed_files: tuple[str, ...] = ()
@@ -47,6 +49,8 @@ def load_task(path: str | Path) -> WorkerTask:
         task_id=str(data["task_id"]),
         repository_path=str(data["repository_path"]),
         branch=str(data["branch"]),
+        goal=str(data.get("goal", "")),
+        success_criteria=tuple(str(item) for item in data.get("success_criteria", [])),
         tests=tuple(data.get("tests", [])),
         allow_cline_repair=bool(data.get("allow_cline_repair", False)),
         allowed_files=tuple(data.get("allowed_files", [])),
