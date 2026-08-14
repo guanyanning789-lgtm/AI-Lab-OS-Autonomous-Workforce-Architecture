@@ -18,6 +18,8 @@ def _git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
         cwd=str(cwd),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
         shell=False,
     )
@@ -123,8 +125,6 @@ def watch(repository: Path, branch: str, poll_seconds: float) -> None:
                 last_payload = payload
                 last_fingerprint = fingerprint
         except Exception as exc:
-            # Do not redraw the whole screen or replace the real execution state.
-            # A transient sync failure is a watcher issue, not a task failure.
             print(f"\n[watcher sync warning] {exc} -- retrying in {poll_seconds:g}s", flush=True)
             if last_payload is None:
                 print("No remote status has been loaded yet.", flush=True)
