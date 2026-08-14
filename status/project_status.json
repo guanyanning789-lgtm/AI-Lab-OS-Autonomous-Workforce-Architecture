@@ -1,16 +1,16 @@
 {
   "milestone": "V0.8 Goal Intake / Autonomous Orchestration",
-  "percent": 86,
-  "progress": "V0.8.1 Goal Intake Contract PASS; V0.8.2 Intake -> Skill Router PASS; V0.8.3 Durable Launch PASS; V0.8.4 Recovery Handoff PASS; V0.8.5 one-request real E2E script and CI regression committed",
+  "percent": 100,
+  "progress": "V0.8.1 Goal Intake Contract PASS; V0.8.2 Intake -> Skill Router PASS; V0.8.3 Durable Launch PASS; V0.8.4 Recovery Handoff PASS; V0.8.5 real one-request local E2E PASS",
   "execution_name": "V0.8.5 One-Request Real E2E",
-  "execution_percent": 74,
-  "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI, then execute the one-request real graduation script on the local Brain + SearXNG backends",
-  "execution_detail": "V0.8.5 now exposes the intended graduation path: one GoalIntakeRequest enters the Skill registry, compiles a TaskPlan, starts durable Supervisor execution, deliberately stops after one launch cycle, and automatically hands the same persisted goal to bounded recovery. The real manual E2E uses the existing Research/Coding/Computer router with computer_approved=false and computer_dry_run=true, and rejects any recovery that repeats the already-completed first task.",
-  "execution_result": "執行中...",
+  "execution_percent": 100,
+  "execution_state": "DONE",
+  "execution_step": "Graduation verification complete",
+  "execution_detail": "Local graduation proved that one GoalIntakeRequest alone selected the one-request Research/Coding/Computer Skill, compiled its TaskPlan, launched durable Supervisor execution, intentionally stopped after one cycle, automatically handed the persisted unfinished goal to bounded recovery, resumed at Coding without repeating completed Research, completed safe Computer dry-run verification, cleared the resume cursor, and reached GOAL_COMPLETE.",
+  "execution_result": "DONE - V0.8 graduated",
   "execution_error": "",
-  "current_work": "Verify the one-request orchestration contract against the complete CI suite before local real-backend graduation.",
-  "next_step": "If CI is green, run scripts/manual_v085_one_request_real_e2e.py against Brain at 127.0.0.1:8000 and SearXNG at 127.0.0.1:8888. RESULT=DONE and GOAL_COMPLETE will graduate V0.8.",
-  "finish_line": "V0.8 is complete when one natural-language request alone selects the Skill, launches durable multi-agent work, survives a forced partial launch through automatic recovery handoff, avoids repeating completed work, and reaches GOAL_COMPLETE with real local backends.",
-  "user_action": "Wait for CI. When asked, run the single V0.8.5 graduation command in the terminal."
+  "current_work": "V0.8 is complete and frozen as the one-request autonomous orchestration foundation.",
+  "next_step": "Begin V0.9 Product Runtime / Unified Goal API: expose the proven one-request orchestration as a stable local service/API with goal submission, status, events, cancellation boundaries, and recovery lifecycle so V1.0 can be used as a real always-on product rather than manual graduation scripts.",
+  "finish_line": "V0.8 graduation achieved: one natural-language request can autonomously create, route, persist, execute, recover, and complete a real local multi-agent goal without manual Goal/TaskPlan/Resume plumbing.",
+  "user_action": "None. V0.8 is complete."
 }
