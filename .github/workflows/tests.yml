@@ -11,6 +11,7 @@ on:
       - ai/v0.5-skill-system
       - ai/v0.6-persistent-goal-memory
       - ai/v0.7-autonomous-recovery
+      - ai/v0.8-goal-intake-orchestration
   pull_request:
 
 jobs:
