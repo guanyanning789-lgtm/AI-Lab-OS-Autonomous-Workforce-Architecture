@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from ai_lab_os.execution_history import JsonExecutionHistory
+from ai_lab_os.goal_lifecycle_service import GoalLifecycleResult, GoalLifecycleService
 from ai_lab_os.goal_query_service import GoalQueryService, GoalStatusSnapshot
 from ai_lab_os.persistent_goal_store import JsonGoalStore
 from ai_lab_os.recovery_daemon import RecoveryScanReport, scan_once
@@ -39,14 +40,7 @@ TickFn = Callable[[ProductRuntimeTick], None]
 
 
 class ProductRuntime:
-    """Always-on product core above the proven durable orchestration stack.
-
-    ProductRuntime deliberately keeps transport and process supervision outside
-    the core. submit/query/events are synchronous stable service boundaries;
-    tick() performs exactly one bounded recovery scan. run() is only a small
-    polling loop around tick(), making it easy to host later from CLI, HTTP,
-    Windows service, or another process manager without duplicating semantics.
-    """
+    """Always-on product core above the proven durable orchestration stack."""
 
     def __init__(
         self,
@@ -81,6 +75,7 @@ class ProductRuntime:
             min_score=min_score,
         )
         self.query = GoalQueryService(goal_store)
+        self.lifecycle = GoalLifecycleService(goal_store)
         self._tick_number = 0
 
     def submit(self, request: GoalSubmissionRequest) -> GoalSubmissionResult:
@@ -94,6 +89,15 @@ class ProductRuntime:
 
     def get_events(self, goal_id: str, *, after: int = 0) -> tuple[str, ...]:
         return self.query.get_events(goal_id, after=after)
+
+    def pause(self, goal_id: str) -> GoalLifecycleResult:
+        return self.lifecycle.pause(goal_id)
+
+    def cancel(self, goal_id: str) -> GoalLifecycleResult:
+        return self.lifecycle.cancel(goal_id)
+
+    def resume(self, goal_id: str) -> GoalLifecycleResult:
+        return self.lifecycle.resume(goal_id)
 
     def tick(self) -> ProductRuntimeTick:
         self._tick_number += 1
