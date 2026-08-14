@@ -1,0 +1,20 @@
+{
+  "task_id": "task-0004-evidence-rich-brain-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "goal": "Implement multiply_four(a, b, c, d) in math_ops.py so it returns the product of all four arguments.",
+  "success_criteria": [
+    "math_ops.py defines multiply_four(a, b, c, d)",
+    "multiply_four(2, 3, 4, 5) returns 120",
+    "the specified pytest verification passes",
+    "only math_ops.py may be modified"
+  ],
+  "tests": [
+    "python -m pytest C:\\AI-Lab\\ai-lab-os\\tests\\e2e_task_0004_target.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
