@@ -5,19 +5,32 @@ from ai_lab_os.worker_protocol import WorkerTask
 
 
 class FakeBrain:
-    def __init__(self, repository: Path):
+    def __init__(self, repository: Path, *, success: bool = True):
         self.repository = repository
+        self.success = success
         self.calls = 0
         self.requests = []
 
     def repair(self, request):
         self.calls += 1
         self.requests.append(request)
-        (self.repository / "math_ops.py").write_text(
-            "def multiply(a, b):\n    return a * b\n",
-            encoding="utf-8",
-        )
-        return {"phase": "complete", "success": True}
+        if self.success:
+            (self.repository / "math_ops.py").write_text(
+                "def multiply(a, b):\n    return a * b\n",
+                encoding="utf-8",
+            )
+            return {
+                "phase": "complete",
+                "success": True,
+                "message": "done",
+                "verification_errors": [],
+            }
+        return {
+            "phase": "failed",
+            "success": False,
+            "message": "Coding agent exhausted repair budget",
+            "verification_errors": ["still failing"],
+        }
 
 
 def _init_repo(tmp_path: Path, branch: str = "main") -> Path:
@@ -46,6 +59,7 @@ def test_worker_runs_safe_pytest_and_completes(tmp_path):
     assert result.tests_passed is True
     assert result.status == "complete"
     assert result.attempts_used == 1
+    assert result.changed_files == []
 
 
 def test_worker_repairs_failed_test_via_brain(tmp_path):
@@ -80,12 +94,72 @@ def test_worker_repairs_failed_test_via_brain(tmp_path):
     assert brain.calls == 1
     assert result.tests_passed is True
     assert result.attempts_used == 2
-    assert "math_ops.py" in result.changed_files
+    assert result.changed_files == ["math_ops.py"]
+    assert result.brain_phase == "complete"
+    assert result.brain_success is True
+    assert result.brain_message == "done"
     prompt = brain.requests[0].task
     assert "Fix multiply so it returns the product" in prompt
     assert "multiply(6, 7) returns 42" in prompt
     assert "math_ops.py" in prompt
     assert "assert 13 == 42" in prompt
+
+
+def test_worker_does_not_report_preexisting_unrelated_dirty_files(tmp_path):
+    repo = _init_repo(tmp_path)
+    (repo / "math_ops.py").write_text("def multiply(a, b):\n    return a + b\n", encoding="utf-8")
+    (repo / "unrelated.py").write_text("DIRTY = True\n", encoding="utf-8")
+    (repo / "test_math_ops.py").write_text(
+        "from math_ops import multiply\n\ndef test_multiply():\n    assert multiply(6, 7) == 42\n",
+        encoding="utf-8",
+    )
+    brain = FakeBrain(repo)
+
+    result = run_task(
+        WorkerTask(
+            task_id="task-dirty-baseline",
+            repository_path=str(repo),
+            branch="main",
+            tests=("python -m pytest test_math_ops.py -q",),
+            allow_cline_repair=True,
+            allowed_files=("math_ops.py",),
+        ),
+        brain=brain,
+    )
+
+    assert result.tests_passed is True
+    assert result.changed_files == ["math_ops.py"]
+    assert "unrelated.py" not in result.changed_files
+
+
+def test_worker_surfaces_brain_failure_without_masking_it_as_verification_failure(tmp_path):
+    repo = _init_repo(tmp_path)
+    (repo / "math_ops.py").write_text("def multiply(a, b):\n    return a + b\n", encoding="utf-8")
+    (repo / "test_math_ops.py").write_text(
+        "from math_ops import multiply\n\ndef test_multiply():\n    assert multiply(6, 7) == 42\n",
+        encoding="utf-8",
+    )
+    brain = FakeBrain(repo, success=False)
+
+    result = run_task(
+        WorkerTask(
+            task_id="task-brain-failed",
+            repository_path=str(repo),
+            branch="main",
+            tests=("python -m pytest test_math_ops.py -q",),
+            allow_cline_repair=True,
+            allowed_files=("math_ops.py",),
+        ),
+        brain=brain,
+    )
+
+    assert result.status == "failed"
+    assert result.tests_passed is False
+    assert result.error == "Brain repair failed"
+    assert result.brain_phase == "failed"
+    assert result.brain_success is False
+    assert result.brain_message == "Coding agent exhausted repair budget"
+    assert result.brain_verification_errors == ["still failing"]
 
 
 def test_worker_requires_allowed_files_for_repair(tmp_path):
