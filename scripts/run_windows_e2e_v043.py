@@ -8,8 +8,6 @@ from typing import Any
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 DEFAULT_PATH = "/task/windows/e2e"
-SAFETY_TRUE = {"dry_run", "dryrun", "mock"}
-SAFETY_FALSE = {"approved", "approve", "approval", "allow_real_actions"}
 
 
 def fetch_json(url: str) -> dict[str, Any]:
@@ -32,7 +30,8 @@ def resolve_ref(document: dict[str, Any], node: Any) -> Any:
         seen.add(ref)
         target: Any = document
         for part in ref[2:].split("/"):
-            target = target[part.replace("~1", "/").replace("~0", "~")]
+            part = part.replace("~1", "/").replace("~0", "~")
+            target = target[part]
         current = target
     return current
 
@@ -43,102 +42,166 @@ def request_schema(openapi: dict[str, Any], path: str) -> dict[str, Any]:
         raise RuntimeError(f"POST {path} was not found in OpenAPI")
     body = resolve_ref(openapi, operation.get("requestBody", {}))
     content = body.get("content", {}) if isinstance(body, dict) else {}
-    media = content.get("application/json", {})
-    schema = resolve_ref(openapi, media.get("schema") if isinstance(media, dict) else None)
+    media = content.get("application/json", {}) if isinstance(content, dict) else {}
+    schema = resolve_ref(openapi, media.get("schema"))
     if not isinstance(schema, dict):
-        raise RuntimeError(f"POST {path} has no usable application/json request schema")
+        raise RuntimeError(f"POST {path} has no object request schema")
     return schema
 
 
-def safe_scalar(name: str, schema: dict[str, Any]) -> Any:
-    lowered = name.lower()
-    if lowered in SAFETY_TRUE:
-        return True
-    if lowered in SAFETY_FALSE:
-        return False
-    if lowered in {"task_id", "id"}:
-        return "v043-windows-e2e"
-    if lowered in {"goal", "instruction", "task", "text", "description", "prompt"}:
-        return "V0.4.3 harmless mock Windows E2E verification"
-    if lowered in {"window_title", "title"}:
-        return ""
-    if "default" in schema:
-        return schema["default"]
+def first_schema_choice(schema: dict[str, Any]) -> Any:
+    if "const" in schema:
+        return schema["const"]
     enum = schema.get("enum")
     if isinstance(enum, list) and enum:
-        # Prefer a no-op-ish enum when available.
-        for candidate in ("noop", "none", "wait", "sleep", "mock"):
-            if candidate in enum:
-                return candidate
         return enum[0]
+    examples = schema.get("examples")
+    if isinstance(examples, list) and examples:
+        return examples[0]
+    if "example" in schema:
+        return schema["example"]
+    if "default" in schema:
+        return schema["default"]
+    return None
+
+
+def safe_scalar(name: str, schema: dict[str, Any]) -> Any:
+    choice = first_schema_choice(schema)
+    if choice is not None:
+        return choice
+    lowered = name.lower()
+    if lowered in {"task_id", "id"}:
+        return "v043-windows-e2e"
+    if lowered in {"step_id", "index", "sequence"}:
+        return 1
+    if lowered in {"action", "action_type", "kind", "type"}:
+        raise RuntimeError(
+            f"OpenAPI exposes no enum/default/example for required action field {name!r}; "
+            "refusing to guess a Windows action."
+        )
+    if lowered in {"text", "value", "content", "instruction", "description", "goal"}:
+        return "V0.4.3 mock-only E2E"
+    if lowered in {"x", "y", "duration", "delay_ms", "timeout_ms", "retries"}:
+        return 0
     kind = schema.get("type")
-    if kind == "boolean": return False
-    if kind in {"integer", "number"}: return 0
-    return "V0.4.3 harmless mock step"
+    if kind == "boolean":
+        return False
+    if kind == "integer":
+        return 0
+    if kind == "number":
+        return 0
+    if kind == "string":
+        return "V0.4.3 mock-only E2E"
+    return None
 
 
-def build_object(openapi: dict[str, Any], raw_schema: Any) -> dict[str, Any]:
-    schema = resolve_ref(openapi, raw_schema)
+def build_object(openapi: dict[str, Any], schema: dict[str, Any], *, context: str) -> dict[str, Any]:
+    schema = resolve_ref(openapi, schema)
     if not isinstance(schema, dict):
-        return {}
+        raise RuntimeError(f"{context} schema is not an object")
     properties = schema.get("properties", {})
-    required = {str(x) for x in schema.get("required", []) if isinstance(x, str)}
-    result: dict[str, Any] = {}
     if not isinstance(properties, dict):
-        return result
-    for name, raw_prop in properties.items():
+        properties = {}
+    required_raw = schema.get("required", [])
+    required = {str(item) for item in required_raw} if isinstance(required_raw, list) else set()
+
+    result: dict[str, Any] = {}
+    for name, raw in properties.items():
         if not isinstance(name, str):
             continue
-        prop = resolve_ref(openapi, raw_prop)
+        prop = resolve_ref(openapi, raw)
         if not isinstance(prop, dict):
             prop = {}
         lowered = name.lower()
-        include = name in required or lowered in SAFETY_TRUE | SAFETY_FALSE | {
-            "goal", "instruction", "task", "text", "description", "prompt", "task_id"
-        }
+
+        # Always force the outer safety gates to safe values.
+        if context == "request" and lowered == "mock":
+            result[name] = True
+            continue
+        if context == "request" and lowered == "allow_real_actions":
+            result[name] = False
+            continue
+
+        include = name in required
+        # Include discriminators/action fields even when optional so Brain sees a legal step.
+        if context == "step" and lowered in {"action", "action_type", "kind", "type"}:
+            include = True
         if not include:
             continue
+
         kind = prop.get("type")
-        if kind == "array":
-            minimum = int(prop.get("minItems", 0) or 0)
-            items = prop.get("items", {})
-            result[name] = [build_value(openapi, name, items) for _ in range(max(1, minimum))] if minimum else []
-        elif kind == "object" or "properties" in prop:
-            result[name] = build_object(openapi, prop)
+        if kind == "object" or "properties" in prop:
+            result[name] = build_object(openapi, prop, context=f"{context}.{name}")
+        elif kind == "array":
+            item_schema = resolve_ref(openapi, prop.get("items", {}))
+            if name == "steps":
+                if not isinstance(item_schema, dict):
+                    raise RuntimeError("steps item schema is missing")
+                result[name] = [build_object(openapi, item_schema, context="step")]
+            else:
+                result[name] = []
         else:
-            result[name] = safe_scalar(name, prop)
+            value = safe_scalar(name, prop)
+            if value is None and name in required:
+                raise RuntimeError(f"Cannot safely synthesize required field {context}.{name}")
+            if value is not None:
+                result[name] = value
     return result
 
 
-def build_value(openapi: dict[str, Any], name: str, raw_schema: Any) -> Any:
-    schema = resolve_ref(openapi, raw_schema)
-    if not isinstance(schema, dict):
-        return "V0.4.3 harmless mock step"
-    if schema.get("type") == "object" or "properties" in schema:
-        return build_object(openapi, schema)
-    if schema.get("type") == "array":
-        minimum = int(schema.get("minItems", 0) or 0)
-        return [build_value(openapi, name, schema.get("items", {})) for _ in range(max(1, minimum))] if minimum else []
-    return safe_scalar(name, schema)
+def build_payload(openapi: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    payload = build_object(openapi, schema, context="request")
+    if "task_id" not in payload:
+        payload["task_id"] = "v043-windows-e2e"
+    if "mock" in schema.get("properties", {}):
+        payload["mock"] = True
+    if "allow_real_actions" in schema.get("properties", {}):
+        payload["allow_real_actions"] = False
+    return payload
 
 
-def build_payload(openapi: dict[str, Any], schema: dict[str, Any]) -> tuple[dict[str, Any], set[str]]:
-    payload = build_object(openapi, schema)
-    safety = {name.lower() for name in payload if name.lower() in SAFETY_TRUE | SAFETY_FALSE}
-    return payload, safety
+def assert_safe_payload(payload: dict[str, Any]) -> None:
+    if payload.get("mock") is not True:
+        raise RuntimeError("Safety refusal: payload must contain mock=true")
+    if payload.get("allow_real_actions") is not False:
+        raise RuntimeError("Safety refusal: payload must contain allow_real_actions=false")
+    steps = payload.get("steps")
+    if not isinstance(steps, list) or not steps:
+        raise RuntimeError("Safety/semantic refusal: no valid Windows E2E step could be generated")
 
 
 def post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
-    request = urllib.request.Request(url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
             raw = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"HTTP {exc.code}: {exc.read().decode('utf-8', errors='replace')}") from exc
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {exc.code}: {detail}") from exc
     data = json.loads(raw)
     if not isinstance(data, dict):
         raise RuntimeError("Windows E2E response must be a JSON object")
     return data
+
+
+def response_passed(response: dict[str, Any]) -> tuple[bool, str]:
+    errors = response.get("errors")
+    if isinstance(errors, list) and errors:
+        return False, ", ".join(str(item) for item in errors)
+    status = str(response.get("status", "")).strip().lower()
+    if status in {"rejected", "failed", "error", "blocked"}:
+        return False, status
+    ok = response.get("ok")
+    if ok is False:
+        return False, str(response.get("message") or response.get("detail") or "ok=false")
+    if ok is True or status in {"success", "complete", "completed", "passed", "mock_complete"}:
+        return True, status or "ok=true"
+    return False, f"unrecognized response status: {status or 'missing'}"
 
 
 def main() -> int:
@@ -147,33 +210,48 @@ def main() -> int:
     parser.add_argument("--path", default=DEFAULT_PATH)
     parser.add_argument("--send-dry-run", action="store_true")
     args = parser.parse_args()
+
     base = args.base_url.rstrip("/")
-    print(f"OPENAPI = {base}/openapi.json")
+    openapi_url = base + "/openapi.json"
+    print(f"OPENAPI = {openapi_url}")
     print(f"TARGET  = POST {args.path}")
+
     try:
-        openapi = fetch_json(base + "/openapi.json")
+        openapi = fetch_json(openapi_url)
         schema = request_schema(openapi, args.path)
-        payload, safety = build_payload(openapi, schema)
+        payload = build_payload(openapi, schema)
+        assert_safe_payload(payload)
     except Exception as exc:
-        print("RESULT  = FAILED"); print(f"ERROR   = {exc}"); return 1
-    print("PAYLOAD ="); print(json.dumps(payload, ensure_ascii=False, indent=2))
+        print("RESULT  = FAILED")
+        print(f"ERROR   = {exc}")
+        return 1
+
+    print("PAYLOAD =")
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    print("SAFETY  = mock=true, allow_real_actions=false")
+
     if not args.send_dry_run:
-        print(f"SAFETY  = {', '.join(sorted(safety)) or 'NONE'}")
         print("RESULT  = SCHEMA_READY")
-        print("NEXT    = Re-run with --send-dry-run only when mock=true / allow_real_actions=false is visible.")
+        print("NEXT    = Re-run with --send-dry-run only if the generated action is a legal OpenAPI value.")
         return 0
-    if not safety or not ({"mock", "dry_run", "dryrun"} & safety):
-        print("RESULT  = REFUSED"); print("ERROR   = No explicit non-executing safety gate was found; request not sent."); return 2
-    if payload.get("mock") is not True or payload.get("allow_real_actions") is True:
-        print("RESULT  = REFUSED"); print("ERROR   = Safe Brain contract requires mock=true and allow_real_actions!=true."); return 2
-    print(f"SAFETY  = {', '.join(sorted(safety))}")
+
     try:
         response = post_json(base + args.path, payload)
     except Exception as exc:
-        print("RESULT  = FAILED"); print(f"ERROR   = {exc}"); return 1
-    print("RESPONSE="); print(json.dumps(response, ensure_ascii=False, indent=2))
+        print("RESULT  = FAILED")
+        print(f"ERROR   = {exc}")
+        return 1
+
+    print("RESPONSE=")
+    print(json.dumps(response, ensure_ascii=False, indent=2))
+    passed, reason = response_passed(response)
+    if not passed:
+        print("RESULT  = FAILED")
+        print(f"ERROR   = Brain rejected or failed the mock Windows E2E: {reason}")
+        return 2
+
     print("RESULT  = DONE")
-    print("MESSAGE = Mock Windows E2E completed with real actions disabled.")
+    print("MESSAGE = Legal mock Windows E2E completed with real actions disabled.")
     return 0
 
 
