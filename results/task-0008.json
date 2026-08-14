@@ -1,0 +1,14 @@
+{
+  "task_id": "task-0008-fresh-session-final-v02-repair",
+  "status": "failed",
+  "tests_passed": false,
+  "attempts_used": 2,
+  "changed_files": [],
+  "stdout": "F                                                                        [100%]\n================================== FAILURES ===================================\n________________ test_quadratic_mean_is_available_and_correct _________________\n\n    def test_quadratic_mean_is_available_and_correct():\n        module = _load_target_module()\n>       assert hasattr(module, \"quadratic_mean\")\nE       AssertionError: assert False\nE        +  where False = hasattr(<module 'worker_v01_math_ops_task8' from 'C:\\\\AI-Lab\\\\worker-v01-smoke\\\\math_ops.py'>, 'quadratic_mean')\n\n..\\ai-lab-os\\tests\\e2e_task_0008_target.py:19: AssertionError\n=========================== short test summary info ===========================\nFAILED ..\\ai-lab-os\\tests\\e2e_task_0008_target.py::test_quadratic_mean_is_available_and_correct\n1 failed in 0.04s\n",
+  "stderr": "",
+  "error": "Brain repair failed",
+  "brain_phase": "failed",
+  "brain_success": false,
+  "brain_message": "Cline CLI failed: {\"ts\":\"2026-08-14T06:00:30.030Z\",\"type\":\"error\",\"message\":\"Unauthorized: Please make sure you're using the latest version of Cline and re-authenticate your Cline account.\"}",
+  "brain_verification_errors": []
+}
