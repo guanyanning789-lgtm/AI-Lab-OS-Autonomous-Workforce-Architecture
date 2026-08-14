@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import string
 from dataclasses import dataclass
 
 from ai_lab_os.skill_contract import SkillContract, SkillStepSpec
@@ -18,7 +19,33 @@ class _StrictTemplateValues(dict[str, str]):
         raise ValueError(f"unknown skill template variable: {key}")
 
 
+def _has_named_template_field(template: str) -> bool:
+    """Return True only when a format string contains a named field.
+
+    Literal JSON such as `{}` or `{"x":1}` must remain unchanged. Skill
+    templates intentionally support named fields like `{topic}` but not
+    positional fields.
+    """
+
+    try:
+        for _literal, field_name, _format_spec, _conversion in string.Formatter().parse(template):
+            if field_name is None:
+                continue
+            if field_name == "" or field_name.isdigit():
+                continue
+            return True
+    except ValueError:
+        return False
+    return False
+
+
 def _render(template: str, values: dict[str, str]) -> str:
+    if not _has_named_template_field(template):
+        rendered = template.strip()
+        if not rendered:
+            raise ValueError("skill template rendered to empty text")
+        return rendered
+
     try:
         rendered = template.format_map(_StrictTemplateValues(values)).strip()
     except (ValueError, KeyError) as exc:
