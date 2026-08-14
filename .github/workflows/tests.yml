@@ -1,0 +1,27 @@
+name: AI Lab OS Tests
+
+on:
+  push:
+    branches:
+      - main
+      - ai/v0.1-foundation
+      - ai/v0.2-worker-daemon
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        run: python -m pip install pytest
+
+      - name: Run tests
+        run: python -m pytest -q
