@@ -14,6 +14,7 @@ class TaskExecutionStatus(str, Enum):
     SUCCESS = "success"
     FAILED = "failed"
     NEEDS_REPLAN = "needs_replan"
+    AWAITING_APPROVAL = "awaiting_approval"
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,8 @@ def _persist_runtime(
     if goal_status is None:
         if runtime.all_complete():
             goal_status = "complete"
+        elif any(state.status is TaskLifecycleStatus.AWAITING_APPROVAL for state in runtime.tasks.values()):
+            goal_status = "approval_required"
         elif any(state.status is TaskLifecycleStatus.REPLAN for state in runtime.tasks.values()):
             goal_status = "replan_required"
         elif any(state.status is TaskLifecycleStatus.RUNNING for state in runtime.tasks.values()):
@@ -170,6 +173,19 @@ def run_supervisor_loop(
             _record_terminal_history(history_store, goal_store, plan.goal_id)
             return SupervisorRunResult(plan.goal_id, "complete", cycles, completed, message="All planned tasks completed successfully.", events=events)
 
+        approval_task = next((task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.AWAITING_APPROVAL), None)
+        if approval_task is not None:
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="approval_required")
+            return SupervisorRunResult(
+                goal_id=plan.goal_id,
+                status="approval_required",
+                cycles=cycles,
+                completed_tasks=tuple(task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE),
+                failed_task_id=approval_task,
+                message="A sensitive action is waiting for explicit approval.",
+                events=events,
+            )
+
         task_id = runtime.next_ready_task_id()
         if task_id is None:
             replan_task = next((task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.REPLAN), None)
@@ -214,6 +230,21 @@ def run_supervisor_loop(
             events.append(f"COMPLETE:{task_id}")
             _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
             continue
+
+        if result.status is TaskExecutionStatus.AWAITING_APPROVAL:
+            message = result.message.strip() or "approval required"
+            runtime.mark_awaiting_approval(task_id, message)
+            events.append(f"APPROVAL_REQUIRED:{task_id}:{message}")
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="approval_required")
+            return SupervisorRunResult(
+                goal_id=plan.goal_id,
+                status="approval_required",
+                cycles=cycles,
+                completed_tasks=tuple(task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE),
+                failed_task_id=task_id,
+                message=message,
+                events=events,
+            )
 
         error = result.message.strip() or "task execution failed"
         runtime.mark_failed(task_id, error)
