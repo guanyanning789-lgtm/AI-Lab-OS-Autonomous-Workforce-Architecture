@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 63,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); Brain transport and safety gates verified; legal Windows action discovery in progress",
+  "percent": 64,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); Brain transport and safety gates verified; OpenAPI cannot publish legal action values",
   "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 93,
+  "execution_percent": 95,
   "execution_state": "RUNNING",
-  "execution_step": "Discover Brain's legal Windows action contract without guessing",
-  "execution_detail": "The guarded mock request reached Brain successfully, but the placeholder action was correctly rejected as unsupported. OpenAPI for /task/windows/e2e does not expose an enum/default/example for action, so a new read-only discovery tool now cross-inspects /task/windows/e2e, /actions/execute, /screen/agent, /screen/understand, and related components for published action values.",
+  "execution_step": "Inspect the local Brain unsupported_action guard to recover the real Windows action allowlist",
+  "execution_detail": "The read-only OpenAPI cross-inspection confirmed that WindowsTaskStepV0910.action is a required free string with no enum/default/example. The apparent candidates file_text_equals and foreground_window_title_contains belong to verification.type, not action, so they must not be used as Windows actions. The final source of truth is now the local Brain implementation that emits unsupported_action.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Resolve the final action-contract mismatch while keeping mock=true and allow_real_actions=false.",
-  "next_step": "Run scripts/discover_windows_actions_v043.py locally. If OpenAPI exposes a legal action candidate elsewhere, wire it into the guarded mock E2E and verify accepted execution. If no candidate is exposed, inspect the local Brain source guard directly.",
+  "current_work": "Read the local Brain source guard around unsupported_action and extract its explicit supported action names without executing the desktop.",
+  "next_step": "Search C:\\AI-Lab\\brain for unsupported_action / WindowsTaskStepV0910, inspect the matching source context, then wire one known-supported action into mock=true + allow_real_actions=false E2E. Mark V0.4.3 DONE only after Brain accepts it.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "Run the read-only discovery command and send the LEGAL_ACTION_CANDIDATES / ACTION_HINTS output. It does not execute any Windows action."
+  "user_action": "Run the local read-only source search command I provide next and send the output. No Windows action is executed."
 }
