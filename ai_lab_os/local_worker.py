@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Callable
 
 from ai_lab_os.brain_client import BrainClient, BrainRepairRequest
 from ai_lab_os.result_publisher import publish_result_file
@@ -13,6 +14,12 @@ from ai_lab_os.worker_protocol import WorkerResult, WorkerTask, load_task, write
 
 
 RUNTIME_ARTIFACT_DIRS = {"__pycache__", ".pytest_cache"}
+ProgressFn = Callable[[str], None]
+
+
+def _emit(progress: ProgressFn | None, message: str) -> None:
+    if progress is not None:
+        progress(message)
 
 
 def _run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -72,10 +79,7 @@ def _snapshot_allowed_files(repository: Path, allowed_files: tuple[str, ...]) ->
     }
 
 
-def _changed_allowed_files(
-    repository: Path,
-    before: dict[str, str | None],
-) -> list[str]:
+def _changed_allowed_files(repository: Path, before: dict[str, str | None]) -> list[str]:
     changed: list[str] = []
     for relative, previous_digest in before.items():
         if _file_digest(repository / relative) != previous_digest:
@@ -114,16 +118,17 @@ def _brain_fields(response: dict | None) -> tuple[str | None, bool | None, str |
     )
 
 
-def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerResult:
+def run_task(
+    task: WorkerTask,
+    *,
+    brain: BrainClient | None = None,
+    progress: ProgressFn | None = None,
+) -> WorkerResult:
     task.validate()
     repository = Path(task.repository_path).resolve()
+    _emit(progress, "VALIDATING")
     if not repository.exists() or not repository.is_dir():
-        return WorkerResult(
-            task_id=task.task_id,
-            status="failed",
-            tests_passed=False,
-            error="repository_path does not exist",
-        )
+        return WorkerResult(task_id=task.task_id, status="failed", tests_passed=False, error="repository_path does not exist")
 
     branch_check = _run(["git", "branch", "--show-current"], cwd=repository)
     current_branch = (branch_check.stdout or "").strip()
@@ -136,6 +141,7 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
         )
 
     allowed_before = _snapshot_allowed_files(repository, task.allowed_files)
+    _emit(progress, "VERIFYING_INITIAL")
     passed, stdout, stderr = _run_tests(task, repository)
     attempts = 1
     brain_phase: str | None = None
@@ -154,6 +160,7 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
                 stderr=stderr,
                 error="allowed_files required when Cline repair is enabled",
             )
+        _emit(progress, "REPAIRING_WITH_BRAIN")
         client = brain or BrainClient()
         response = client.repair(
             BrainRepairRequest(
@@ -168,6 +175,7 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
         brain_phase, brain_success, brain_message, brain_verification_errors = _brain_fields(response)
 
         if brain_success is False:
+            _emit(progress, "BRAIN_REPAIR_FAILED")
             return WorkerResult(
                 task_id=task.task_id,
                 status="failed",
@@ -183,8 +191,10 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
                 brain_verification_errors=brain_verification_errors,
             )
 
+        _emit(progress, "VERIFYING_AFTER_REPAIR")
         passed, stdout, stderr = _run_tests(task, repository)
 
+    _emit(progress, "COMPLETE" if passed else "FAILED")
     return WorkerResult(
         task_id=task.task_id,
         status="complete" if passed else "failed",
@@ -205,15 +215,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="AI Lab OS local worker")
     parser.add_argument("task_file")
     parser.add_argument("--result", required=True)
-    parser.add_argument(
-        "--publish-result",
-        action="store_true",
-        help="commit and push only the generated results/ file on the current branch",
-    )
+    parser.add_argument("--publish-result", action="store_true", help="commit and push only the generated results/ file on the current branch")
     args = parser.parse_args()
 
     task = load_task(args.task_file)
-    result = run_task(task)
+    result = run_task(task, progress=lambda event: print(f"WORKER = {event}", flush=True))
     write_result(args.result, result)
     print(f"TASK = {result.task_id}")
     print(f"STATUS = {result.status}")
