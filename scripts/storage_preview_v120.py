@@ -9,13 +9,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from ai_lab_os.storage_approval_contract import build_approval_contract, render_approval_contract
 from ai_lab_os.storage_canonical_architecture import render_architecture
 from ai_lab_os.storage_cleanup_plan import build_cleanup_plan
 from ai_lab_os.storage_collision_guard import guard_plan
 from ai_lab_os.storage_curator import StoragePlan, build_storage_plan
 from ai_lab_os.storage_decision_groups import build_decision_groups, render_decision_groups
 from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
-from ai_lab_os.storage_micro_batch import render_micro_batch, select_micro_batch
 from ai_lab_os.storage_migration_blueprint import build_migration_blueprint, render_migration_blueprint
 from ai_lab_os.storage_path_planner import build_migration_plan
 from ai_lab_os.storage_project_roots import apply_project_root_protection, detect_project_roots
@@ -29,19 +29,19 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.3 micro-batch approval preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.3.1 exact approval contract preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
-    parser.add_argument("--blueprint-items", type=int, default=15)
-    parser.add_argument("--micro-batch", type=int, default=5)
+    parser.add_argument("--blueprint-items", type=int, default=10)
+    parser.add_argument("--contract-items", type=int, default=3)
     args = parser.parse_args()
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.3.0 FIRST MICRO-BATCH PREVIEW")
+    print("STORAGE CURATOR V1.3.1 EXACT APPROVAL CONTRACT PREVIEW")
     print("=" * 78)
-    print("MODE   = READ ONLY / APPROVAL PREVIEW")
-    print("SAFETY = selected candidates are NOT executable until a separate explicit approval step")
+    print("MODE   = READ ONLY / CONTRACT PREVIEW")
+    print("SAFETY = PDF/image candidates only; exact path + destination + SHA256 bound; no execution")
     if not roots:
         print("RESULT = FAILED")
         return 1
@@ -56,13 +56,13 @@ def main() -> int:
     cleanup = build_cleanup_plan(storage, guards)
     groups = build_decision_groups(cleanup, families)
     blueprint = build_migration_blueprint(cleanup.items)
-    micro = select_micro_batch(blueprint, limit=max(1, min(args.micro_batch, 5)))
+    contract = build_approval_contract(blueprint, limit=max(1, min(args.contract_items, 3)))
 
     print(render_architecture())
     print()
     print(render_migration_blueprint(blueprint, max_items=max(1, args.blueprint_items)))
     print()
-    print(render_micro_batch(micro))
+    print(render_approval_contract(contract))
     print()
     print(render_decision_groups(groups))
     print()
@@ -70,13 +70,13 @@ def main() -> int:
     print(f"PROJECT_ROOTS             = {len(project_roots)}")
     print(f"RAW_APPROVAL_ITEMS        = {cleanup.approval_items}")
     print(f"MIGRATION_BLUEPRINT_ITEMS = {len(blueprint)}")
-    print(f"MICRO_BATCH_ITEMS         = {len(micro.items)}")
+    print(f"CONTRACT_ITEMS            = {len(contract.items)}")
     print(f"DECISION_GROUPS           = {len(groups)}")
     print(f"SEMANTIC_SUBGROUPS        = {total_subgroups}")
     print("APPROVED                  = False")
     print("EXECUTED                  = False")
-    print("RESULT                    = APPROVAL_PREVIEW")
-    print("MESSAGE                   = Review the exact micro-batch paths before any separate real execution command is enabled.")
+    print("RESULT                    = CONTRACT_PREVIEW")
+    print("MESSAGE                   = Exact source/destination/hash contract generated. Real execution remains disabled until explicit approval of these exact items.")
     return 0
 
 
