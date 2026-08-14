@@ -1,16 +1,16 @@
 {
   "milestone": "V0.5 Skill System",
-  "percent": 68,
-  "progress": "V0.5.1 SkillContract PASS; V0.5.2 SkillRegistry PASS; V0.5.3 Skill -> TaskPlan Compiler PASS; V0.5.4 first CI found one selector tie bug and the explicit-trigger precedence fix is committed",
-  "execution_name": "V0.5.4 Natural-Language Skill Selection / Routing",
-  "execution_percent": 82,
+  "percent": 84,
+  "progress": "V0.5.1 SkillContract PASS; V0.5.2 SkillRegistry PASS; V0.5.3 Skill -> TaskPlan Compiler PASS; V0.5.4 routing tie fix refined; V0.5.5 real natural-language Skill E2E runner committed",
+  "execution_name": "V0.5.5 Real Skill E2E",
+  "execution_percent": 72,
   "execution_state": "RUNNING",
-  "execution_step": "Re-run full regression after fixing explicit trigger precedence",
-  "execution_detail": "The first V0.5.4 CI reached 97 passed / 1 failed. The failure exposed a real ranking ambiguity: a request containing an explicit research trigger ('研究') tied with another skill because generic description overlap had equal weight. The selector now tracks explicit_trigger_matches separately and ranks explicit declared triggers before generic score while still failing closed when both trigger count and score tie.",
-  "execution_result": "修復後重新驗證中...",
-  "execution_error": "First CI: 1 failed, 97 passed; explicit research trigger tied with verify-code generic overlap.",
-  "current_work": "Verify the repaired natural-language skill ranking against the complete regression suite.",
-  "next_step": "If CI is green, mark V0.5.4 DONE and immediately build V0.5.5 Real Skill E2E.",
-  "finish_line": "V0.5 completes when natural-language intent can select a registered skill, bind inputs, compile it into a TaskPlanContract, and execute it through the V0.4 multi-agent runtime.",
-  "user_action": "None. Keep the V0.5 watcher open."
+  "execution_step": "Verify repaired V0.5.4 routing in CI, then run the local natural-language Skill graduation E2E",
+  "execution_detail": "The selector now resolves equal explicit-trigger counts by the earliest explicit intent position in the user's request while preserving fail-closed ambiguity when position and score also tie. The V0.5.5 runner accepts one natural-language request, selects a registered three-agent Skill, extracts its input, compiles it into TaskPlanContract, then executes Research via local SearXNG, Coding via the real local worker pytest path, and Computer via Brain /task/windows/e2e with approved=false and dry_run=true.",
+  "execution_result": "執行中...",
+  "execution_error": "Previous V0.5.4 CI exposed an explicit-trigger tie; refined fix committed and awaiting regression result.",
+  "current_work": "Finish V0.5.4 regression, then prove natural-language Skill -> multi-agent GOAL_COMPLETE locally.",
+  "next_step": "If current CI is green, pull ai/v0.5-skill-system and run scripts/manual_v055_real_skill_e2e.py against Brain :8000 and SearXNG :8888. Mark V0.5 DONE only after GOAL_COMPLETE.",
+  "finish_line": "V0.5 completes when a natural-language request selects a registered skill, binds inputs, compiles into a TaskPlanContract, and reaches GOAL_COMPLETE through the V0.4 multi-agent runtime.",
+  "user_action": "None until the current CI result is confirmed. Keep the V0.5 watcher open."
 }
