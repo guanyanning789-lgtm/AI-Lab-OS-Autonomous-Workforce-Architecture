@@ -1,16 +1,16 @@
 {
   "milestone": "V0.7 Autonomous Recovery / Goal Continuation",
-  "percent": 28,
-  "progress": "V0.7.1 Durable Recovery Policy PASS; V0.7.2 Recovery Runner implementation and tests committed",
-  "execution_name": "V0.7.2 Recovery Runner",
+  "percent": 46,
+  "progress": "V0.7.1 Durable Recovery Policy PASS; V0.7.2 Recovery Runner PASS; V0.7.3 bounded Autonomous Replan implementation and tests committed",
+  "execution_name": "V0.7.3 Autonomous Replan",
   "execution_percent": 70,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for automatic persisted-goal recovery execution",
-  "execution_detail": "RecoveryRunner now loads persisted goals, asks RecoveryPolicy for the bounded next action, and automatically executes NONE / RESUME / RETRY / REPAIR through the existing restart-safe Supervisor path. REPLAN remains fail-closed unless an explicit replan_handler is supplied, and ESCALATE never executes. recover_all scans the durable Goal Store in stable order so complete goals are skipped while resumable goals continue without manual resume commands.",
+  "execution_step": "Run full regression CI for bounded validated replan candidates",
+  "execution_detail": "AutonomousReplan now converts a persisted replan_required goal into a deterministic replacement TaskPlan candidate without expanding execution authority. It preserves goal_id, task ids/order, task kinds, assigned agents, dependencies, and success criteria; only the failed task receives recovery context and metadata describing replan reason/previous attempts. validate_replan_candidate rejects agent escalation, dependency rewrites, task additions/removals, identity changes, or success-criteria weakening. This is intentionally bounded before any future model-generated replanning is allowed.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.7.2 automatic recovery against the complete regression suite.",
-  "next_step": "If CI is green, mark V0.7.2 DONE and begin V0.7.3 Autonomous Replan so REPLAN_REQUIRED can produce a validated replacement plan instead of stopping for manual intervention.",
+  "current_work": "Verify V0.7.3 replan safety and compatibility against the complete regression suite.",
+  "next_step": "If CI is green, wire the bounded replan handler into RecoveryRunner and begin V0.7.4 Recovery Daemon / Scan Loop so persisted goals are discovered and recovered proactively.",
   "finish_line": "V0.7 completes when interrupted or failed persisted goals are discovered automatically, assigned a bounded recovery action, re-enter the Supervisor/Agent runtime without manual resume commands, and continue safely toward GOAL_COMPLETE or explicit escalation.",
   "user_action": "None. Keep the V0.7 watcher open."
 }
