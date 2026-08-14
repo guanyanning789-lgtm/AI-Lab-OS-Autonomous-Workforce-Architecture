@@ -6,6 +6,7 @@ on:
       - main
       - ai/v0.1-foundation
       - ai/v0.2-worker-daemon
+      - ai/v0.3-supervisor-runtime
   pull_request:
 
 jobs:
