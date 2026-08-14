@@ -1,16 +1,16 @@
 {
   "milestone": "V0.3 Supervisor Runtime",
-  "percent": 90,
-  "progress": "V0.3.1 PASS; V0.3.2 PASS; V0.3.3 PASS; V0.3.4 PASS; V0.3.5 PASS; V0.3.6 E2E harness committed",
+  "percent": 100,
+  "progress": "V0.3.1 PASS; V0.3.2 PASS; V0.3.3 PASS; V0.3.4 PASS; V0.3.5 PASS; V0.3.6 PASS; V0.3 COMPLETE",
   "execution_name": "V0.3.6 Real Multi-Step E2E",
-  "execution_percent": 60,
-  "execution_state": "RUNNING",
-  "execution_step": "Run full GitHub Actions pytest for the graduation test",
-  "execution_detail": "The E2E now routes Research -> Coding -> Computer, intentionally fails the first Coding attempt, requires Supervisor RETRY recovery, then verifies GOAL_COMPLETE. Waiting for full regression CI.",
-  "execution_result": "執行中...",
+  "execution_percent": 100,
+  "execution_state": "DONE",
+  "execution_step": "Graduation verification complete",
+  "execution_detail": "Full GitHub Actions regression passed: 57 tests. The E2E starts from GoalContract, creates a plan, routes Research -> Coding -> Computer, intentionally fails Coding attempt 1, Supervisor performs RETRY, attempt 2 succeeds, verification completes, and the event stream ends in GOAL_COMPLETE.",
+  "execution_result": "DONE - 可以下一步",
   "execution_error": "",
-  "current_work": "Full regression verification for V0.3.6.",
-  "next_step": "Inspect GitHub Actions. If green, verify the E2E assertions include RETRY and GOAL_COMPLETE, then mark V0.3 DONE. If red, repair the failing integration and rerun.",
-  "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
-  "user_action": "None. Keep the execution monitor open."
+  "current_work": "V0.3 Supervisor Runtime is complete and ready to freeze.",
+  "next_step": "Freeze V0.3 and begin V0.4 Multi-Agent Runtime, where real Coding / Research / Computer executors can run behind the proven Supervisor and AgentRouter contracts.",
+  "finish_line": "V0.3 COMPLETE: one goal can be planned, moved through a task state machine, routed across agents, recovered after a transient execution failure, and completed as GOAL_COMPLETE.",
+  "user_action": "V0.3 is complete. You can tell me to continue to V0.4."
 }
