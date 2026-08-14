@@ -24,14 +24,7 @@ from ai_lab_os.task_planner import PlannedTaskKind
 
 
 def current_branch(repository: Path) -> str:
-    completed = subprocess.run(
-        ["git", "branch", "--show-current"],
-        cwd=str(repository),
-        capture_output=True,
-        text=True,
-        check=False,
-        shell=False,
-    )
+    completed = subprocess.run(["git", "branch", "--show-current"], cwd=str(repository), capture_output=True, text=True, check=False, shell=False)
     branch = (completed.stdout or "").strip()
     if completed.returncode != 0 or not branch:
         raise RuntimeError("Cannot determine current git branch")
@@ -58,36 +51,9 @@ def graduation_skill() -> SkillContract:
         success_criteria=("The resumed execution reaches GOAL_COMPLETE without repeating completed work.",),
         metadata={"triggers": "research,研究,restart,重启,resume,恢复,pytest"},
         steps=(
-            SkillStepSpec(
-                step_id="research",
-                kind=PlannedTaskKind.ANALYZE,
-                agent=AgentKind.RESEARCH,
-                description_template="Research {topic} and return evidence.",
-                success_criteria=("At least one research source is returned.",),
-                metadata_templates={"query": "{topic}"},
-            ),
-            SkillStepSpec(
-                step_id="coding",
-                kind=PlannedTaskKind.VERIFY,
-                agent=AgentKind.CODING,
-                description_template="Verify the local AI Lab OS regression for {topic}.",
-                depends_on=("research",),
-                success_criteria=("Configured pytest command passes.",),
-            ),
-            SkillStepSpec(
-                step_id="computer",
-                kind=PlannedTaskKind.VERIFY,
-                agent=AgentKind.COMPUTER,
-                description_template="Verify the safe computer runtime after resuming {topic}.",
-                depends_on=("coding",),
-                success_criteria=("Brain accepts and completes the mock Windows action.",),
-                metadata_templates={
-                    "action": "click",
-                    "args_json": "{}",
-                    "window_title": "Notepad",
-                    "expected_process": "notepad.exe",
-                },
-            ),
+            SkillStepSpec("research", PlannedTaskKind.ANALYZE, AgentKind.RESEARCH, "Research {topic} and return evidence.", success_criteria=("At least one research source is returned.",), metadata_templates={"query": "{topic}"}),
+            SkillStepSpec("coding", PlannedTaskKind.VERIFY, AgentKind.CODING, "Verify the local AI Lab OS regression for {topic}.", depends_on=("research",), success_criteria=("Configured pytest command passes.",)),
+            SkillStepSpec("computer", PlannedTaskKind.VERIFY, AgentKind.COMPUTER, "Verify the safe computer runtime after resuming {topic}.", depends_on=("coding",), success_criteria=("Brain accepts and completes the mock Windows action.",), metadata_templates={"action": "click", "args_json": "{}", "window_title": "Notepad", "expected_process": "notepad.exe"}),
         ),
     )
 
@@ -97,10 +63,7 @@ def main() -> int:
     parser.add_argument("--repo", default=".")
     parser.add_argument("--brain-base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--searxng-base-url", default="http://127.0.0.1:8888")
-    parser.add_argument(
-        "--request",
-        default="请研究 pytest fixture，并验证代码和电脑执行链可以在重启后继续完成",
-    )
+    parser.add_argument("--request", default="请研究 pytest fixture，并验证代码和电脑执行链可以在重启后继续完成")
     args = parser.parse_args()
 
     repository = Path(args.repo).resolve()
@@ -128,18 +91,7 @@ def main() -> int:
     routed = route_skill_request(args.request, registry, goal_id="v065-restart-resume-e2e")
     plan = routed.compiled.plan
     first_task_id = plan.tasks[0].task_id
-
-    config = MultiAgentRuntimeConfig(
-        repository_path=str(repository),
-        branch=branch,
-        tests=("python -m pytest tests/test_agent_router_v035.py -q",),
-        allowed_files=(),
-        brain_base_url=args.brain_base_url,
-        searxng_base_url=args.searxng_base_url,
-        allow_cline_repair=False,
-        computer_approved=False,
-        computer_dry_run=True,
-    )
+    config = MultiAgentRuntimeConfig(repository_path=str(repository), branch=branch, tests=("python -m pytest tests/test_agent_router_v035.py -q",), allowed_files=(), brain_base_url=args.brain_base_url, searxng_base_url=args.searxng_base_url, allow_cline_repair=False, computer_approved=False, computer_dry_run=True)
     router = build_core_router(config)
 
     with tempfile.TemporaryDirectory(prefix="ai-lab-v065-") as temporary:
@@ -147,24 +99,16 @@ def main() -> int:
         history_path = Path(temporary) / "history.jsonl"
         store_phase_1 = JsonGoalStore(state_path)
         history_phase_1 = JsonExecutionHistory(history_path)
-
         print(f"SKILL    = {routed.selection.skill.skill_id}")
         print(f"TASKS    = {len(plan.tasks)}")
         print("PHASE 1  = Run exactly one cycle, persist Task 1, then simulate process stop")
-
-        phase_1 = run_supervisor_loop(
-            plan,
-            router.execute,
-            policy=SupervisorPolicy(max_cycles=1),
-            goal_store=store_phase_1,
-            history_store=history_phase_1,
-        )
+        phase_1 = run_supervisor_loop(plan, router.execute, policy=SupervisorPolicy(max_cycles=1), goal_store=store_phase_1, history_store=history_phase_1)
         saved = store_phase_1.load(plan.goal_id)
+        pre_restart_event_count = len(saved.events)
         print(f"PHASE1_STATUS = {phase_1.status}")
         print(f"PERSISTED     = {saved.status}")
         print(f"RESUME_CURSOR = {saved.resume_cursor}")
         print(f"COMPLETED     = {', '.join(task.task_id for task in saved.tasks if task.status == 'complete')}")
-
         if saved.tasks[0].status != "complete":
             print("RESULT   = FAILED")
             print("ERROR    = Phase 1 did not persist the first task as complete.")
@@ -175,29 +119,23 @@ def main() -> int:
         store_phase_2 = JsonGoalStore(state_path)
         history_phase_2 = JsonExecutionHistory(history_path)
         router_after_restart = build_core_router(config)
-        phase_2 = resume_supervisor_from_store(
-            plan.goal_id,
-            router_after_restart.execute,
-            store_phase_2,
-            policy=SupervisorPolicy(max_cycles=50),
-            history_store=history_phase_2,
-        )
+        phase_2 = resume_supervisor_from_store(plan.goal_id, router_after_restart.execute, store_phase_2, policy=SupervisorPolicy(max_cycles=50), history_store=history_phase_2)
         final_state = store_phase_2.load(plan.goal_id)
         final_history = history_phase_2.latest(goal_id=plan.goal_id)
-
-        running_first = [
-            event for event in phase_2.events
-            if event.startswith(f"RUNNING:{first_task_id}:")
-        ]
+        post_restart_events = phase_2.events[pre_restart_event_count:]
+        running_first_after_restart = [event for event in post_restart_events if event.startswith(f"RUNNING:{first_task_id}:")]
         print(f"STATUS        = {phase_2.status}")
         print(f"CYCLES        = {phase_2.cycles}")
         print(f"FINAL_CURSOR  = {final_state.resume_cursor}")
         print(f"HISTORY       = {final_history.status}, attempts={final_history.total_attempts}")
-        print("EVENTS:")
+        print("EVENTS (full durable history):")
         for event in phase_2.events:
             print(f"  {event}")
+        print("POST-RESTART EVENTS:")
+        for event in post_restart_events:
+            print(f"  {event}")
 
-        if running_first:
+        if running_first_after_restart:
             print("RESULT   = FAILED")
             print("ERROR    = Completed Task 1 was executed again after restart.")
             return 1
