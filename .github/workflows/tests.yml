@@ -9,6 +9,7 @@ on:
       - ai/v0.3-supervisor-runtime
       - ai/v0.4-multi-agent-runtime
       - ai/v0.5-skill-system
+      - ai/v0.6-persistent-goal-memory
   pull_request:
 
 jobs:
