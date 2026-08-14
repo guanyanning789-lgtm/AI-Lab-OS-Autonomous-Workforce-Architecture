@@ -54,8 +54,8 @@ def decide_recovery(
     """Choose the next durable recovery action without performing it.
 
     The policy is intentionally deterministic and fail-closed. Product lifecycle
-    states such as paused/cancelled are explicitly non-actionable so background
-    recovery cannot silently restart user-stopped work.
+    and human-approval states are explicitly non-actionable so background
+    recovery cannot silently restart user-stopped or unapproved work.
     """
 
     config = config or RecoveryPolicyConfig()
@@ -70,12 +70,16 @@ def decide_recovery(
             safe_to_continue=False,
         )
 
-    if status in {"paused", "cancelled"}:
+    if status in {"paused", "cancelled", "approval_required"}:
         return RecoveryDecision(
             goal_id=state.goal_id,
             action=RecoveryAction.NONE,
             task_id=state.resume_cursor,
-            reason=f"goal lifecycle state is {status}; background recovery is disabled",
+            reason=(
+                "goal is waiting for explicit human approval; background recovery is disabled"
+                if status == "approval_required"
+                else f"goal lifecycle state is {status}; background recovery is disabled"
+            ),
             attempts=0,
             safe_to_continue=False,
         )
