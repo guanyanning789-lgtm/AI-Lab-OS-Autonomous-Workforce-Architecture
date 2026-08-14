@@ -1,8 +1,9 @@
 {
   "milestone": "V0.3 Supervisor Runtime",
-  "progress": "V0.3.1 Goal Contract PASS; V0.3.2 Task Planner PASS (42 tests); V0.3.3 Task State Machine PASS (47 tests); V0.3.4 Supervisor Loop PASS; V0.3.5 Agent Router implemented and awaiting CI verification",
-  "current_work": "The supervisor can now route planned tasks by AgentKind through a dedicated AgentRouter. Coding, Research, and Computer executors can be registered independently, unknown or unregistered agents fail closed, duplicate registration is rejected unless replace() is explicit, and Supervisor Loop orchestration does not need to change when executors are swapped.",
-  "next_step": "Verify V0.3.5 in GitHub Actions. If green, implement V0.3.6 Real Multi-Step E2E that starts from one GoalContract, plans tasks, routes them, executes through the supervisor loop, exercises failure recovery, and reaches GOAL_COMPLETE with structured evidence.",
+  "percent": 80,
+  "progress": "V0.3.1 PASS; V0.3.2 PASS; V0.3.3 PASS; V0.3.4 PASS; V0.3.5 Agent Router REPAIRING after CI found 2 contract-mismatch test failures (54 passed, 2 failed)",
+  "current_work": "Repair V0.3.5 Agent Router integration by aligning the new router tests with the existing TaskExecutionResult contract without breaking the already-passing Supervisor Loop contract.",
+  "next_step": "Restore full pytest to green, then start V0.3.6 Real Multi-Step E2E: GoalContract -> Planner -> State Machine -> Supervisor -> Agent Router -> Executor -> Recovery -> GOAL_COMPLETE.",
   "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
-  "user_action": "None. Keep scripts/watch_project_status.py running to see remote progress updates in the terminal."
+  "user_action": "None. Keep this watcher running; remote progress is refreshed automatically every 10 seconds."
 }
