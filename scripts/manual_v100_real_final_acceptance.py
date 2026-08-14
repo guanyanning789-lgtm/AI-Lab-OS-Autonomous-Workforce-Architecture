@@ -82,7 +82,7 @@ def graduation_skill() -> SkillContract:
                 depends_on=("coding",),
                 metadata_templates={
                     "action": "click",
-                    "args_json": "{}",
+                    "args_json": "{\"target\":\"100,100\"}",
                     "window_title": "Notepad",
                     "expected_process": "notepad.exe",
                 },
@@ -96,20 +96,12 @@ def main() -> int:
     parser.add_argument("--repo", default=".")
     parser.add_argument("--brain-base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--searxng-base-url", default="http://127.0.0.1:8888")
-    parser.add_argument(
-        "--request",
-        default="请研究 pytest fixture，验证本地代码，并完成最终电脑执行链验收",
-    )
-    parser.add_argument(
-        "--approve",
-        action="store_true",
-        help="Explicitly approve the one real Computer action after the runtime stops at approval_required.",
-    )
+    parser.add_argument("--request", default="请研究 pytest fixture，验证本地代码，并完成最终电脑执行链验收")
+    parser.add_argument("--approve", action="store_true", help="Explicitly approve the one real Computer action after the runtime stops at approval_required.")
     args = parser.parse_args()
 
     repository = Path(args.repo).resolve()
     branch = current_branch(repository)
-
     print("=" * 78)
     print("AI LAB V1.0 REAL FINAL ACCEPTANCE")
     print("=" * 78)
@@ -120,6 +112,7 @@ def main() -> int:
     print(f"SEARXNG  = {args.searxng_base_url}")
     print("ENTRY    = FinalNaturalLanguageEntrypoint")
     print("SAFETY   = Real Computer action is fail-closed until --approve is explicitly supplied")
+    print("ACTION   = Notepad-only click target 100,100; Brain foreground/process guards remain mandatory")
     print()
 
     try:
@@ -132,15 +125,10 @@ def main() -> int:
 
     registry = SkillRegistry.from_skills((graduation_skill(),))
     config = MultiAgentRuntimeConfig(
-        repository_path=str(repository),
-        branch=branch,
-        tests=("python -m pytest tests/test_agent_router_v035.py -q",),
-        allowed_files=(),
-        brain_base_url=args.brain_base_url,
-        searxng_base_url=args.searxng_base_url,
-        allow_cline_repair=False,
-        computer_approved=True,
-        computer_dry_run=False,
+        repository_path=str(repository), branch=branch,
+        tests=("python -m pytest tests/test_agent_router_v035.py -q",), allowed_files=(),
+        brain_base_url=args.brain_base_url, searxng_base_url=args.searxng_base_url,
+        allow_cline_repair=False, computer_approved=True, computer_dry_run=False,
     )
     router = build_core_router(config)
 
@@ -150,29 +138,19 @@ def main() -> int:
         approvals = ApprovalService(store)
 
         def runtime_factory() -> ProductRuntime:
-            gated = ApprovalAwareExecutor(
-                router.execute,
-                approvals,
-                real_computer_actions_enabled=True,
-            )
+            gated = ApprovalAwareExecutor(router.execute, approvals, real_computer_actions_enabled=True)
             return ProductRuntime(
-                registry,
-                gated,
-                store,
-                history_store=history,
+                registry, gated, store, history_store=history,
                 launch_policy=SupervisorPolicy(max_cycles=50),
-                recovery_policy=SupervisorPolicy(max_cycles=50),
-                approval_service=approvals,
+                recovery_policy=SupervisorPolicy(max_cycles=50), approval_service=approvals,
             )
 
         host = ProductServiceHost(runtime_factory)
         host.start(recover=False)
         entry = FinalNaturalLanguageEntrypoint(host.runtime)
-
         first = entry.run(args.request, goal_id="v100-real-final-acceptance")
         report_service = ProgressReportService(host.runtime)
         waiting = report_service.get(first.goal_id)
-
         print(render_progress(waiting))
         print()
 
@@ -180,16 +158,13 @@ def main() -> int:
             print("RESULT   = FAILED")
             print("ERROR    = Final acceptance did not stop at explicit approval boundary.")
             return 1
-
         task_id = waiting.current_task
         if not task_id:
             print("RESULT   = FAILED")
             print("ERROR    = Approval-required goal has no current task.")
             return 1
-
         print(f"APPROVAL_REQUIRED = {task_id}")
-        print("REAL_ACTION       = click")
-
+        print("REAL_ACTION       = click Notepad at 100,100")
         if not args.approve:
             print("RESULT   = APPROVAL_REQUIRED")
             print("NEXT     = Re-run the exact command with --approve after reviewing the action above.")
@@ -197,14 +172,12 @@ def main() -> int:
 
         host.runtime.approve(first.goal_id, task_id)
         print(f"APPROVED          = {task_id}")
-
         tick = host.runtime.tick()
         final_report = report_service.get(first.goal_id)
         print()
         print(render_progress(final_report))
         print(f"RUNTIME_TICK      = {tick.tick_number}")
         print(f"TICK_ACTIONABLE   = {tick.recovery.actionable_goals}")
-
         final_snapshot = host.runtime.get_goal(first.goal_id)
         if final_snapshot.status != "complete":
             print("RESULT   = FAILED")
@@ -227,7 +200,6 @@ def main() -> int:
             print("RESULT   = FAILED")
             print("ERROR    = Completed durable goal did not survive service restart.")
             return 1
-
         print(f"SERVICE_GENERATION = {health_before.generation}->{health_after.generation}")
         print("GOAL_COMPLETE")
         print("PROGRESS = 100%")
