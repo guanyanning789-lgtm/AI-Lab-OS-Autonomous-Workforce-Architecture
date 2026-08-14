@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 64,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); Brain transport and safety gates verified; OpenAPI cannot publish legal action values",
+  "percent": 65,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); Brain allowlist recovered as click/type/hotkey",
   "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 95,
+  "execution_percent": 98,
   "execution_state": "RUNNING",
-  "execution_step": "Inspect the local Brain unsupported_action guard to recover the real Windows action allowlist",
-  "execution_detail": "The read-only OpenAPI cross-inspection confirmed that WindowsTaskStepV0910.action is a required free string with no enum/default/example. The apparent candidates file_text_equals and foreground_window_title_contains belong to verification.type, not action, so they must not be used as Windows actions. The final source of truth is now the local Brain implementation that emits unsupported_action.",
+  "execution_step": "Run final guarded mock E2E with Brain-supported click action",
+  "execution_detail": "The local Brain source is now the source of truth: allowed_actions = {click, type, hotkey}. The V0.4.3 runner has been updated to select click while enforcing mock=true and allow_real_actions=false, so the request can validate semantic acceptance without physically clicking the desktop.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Read the local Brain source guard around unsupported_action and extract its explicit supported action names without executing the desktop.",
-  "next_step": "Search C:\\AI-Lab\\brain for unsupported_action / WindowsTaskStepV0910, inspect the matching source context, then wire one known-supported action into mock=true + allow_real_actions=false E2E. Mark V0.4.3 DONE only after Brain accepts it.",
+  "current_work": "Await one final local mock POST using the verified allowlist.",
+  "next_step": "Pull the V0.4 branch and run run_windows_e2e_v043.py with --send-dry-run. If Brain returns no errors and an accepted/completed status, mark V0.4.3 DONE and immediately begin V0.4.4 Runtime Composition.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "Run the local read-only source search command I provide next and send the output. No Windows action is executed."
+  "user_action": "Run the final guarded mock E2E command. Real Windows actions remain disabled."
 }
