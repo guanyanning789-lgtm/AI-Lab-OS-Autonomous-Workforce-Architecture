@@ -69,6 +69,20 @@ class PlannedTask:
             "metadata": dict(self.metadata),
         }
 
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "PlannedTask":
+        return cls(
+            task_id=str(payload["task_id"]),
+            goal_id=str(payload["goal_id"]),
+            sequence=int(payload["sequence"]),
+            kind=PlannedTaskKind(str(payload["kind"])),
+            description=str(payload["description"]),
+            agent=AgentKind(str(payload["agent"])),
+            success_criteria=tuple(str(item) for item in payload.get("success_criteria", [])),
+            depends_on=tuple(str(item) for item in payload.get("depends_on", [])),
+            metadata={str(key): str(value) for key, value in dict(payload.get("metadata", {})).items()},
+        )
+
 
 @dataclass(frozen=True)
 class TaskPlanContract:
@@ -115,13 +129,17 @@ class TaskPlanContract:
             "tasks": [task.to_dict() for task in self.tasks],
         }
 
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "TaskPlanContract":
+        return cls(
+            goal_id=str(payload["goal_id"]),
+            planner_version=str(payload.get("planner_version", "v0.3.2")),
+            tasks=tuple(PlannedTask.from_dict(item) for item in payload.get("tasks", [])),
+        )
+
 
 def plan_goal(goal: GoalContract) -> TaskPlanContract:
-    """Build the first explicit supervisor plan without executing any task.
-
-    V0.3.2 intentionally keeps planning deterministic. A later supervisor/model
-    planner can replace this strategy while preserving the TaskPlanContract.
-    """
+    """Build the first explicit supervisor plan without executing any task."""
 
     prefix = goal.goal_id
     analyze_id = f"{prefix}-task-001"
