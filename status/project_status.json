@@ -1,8 +1,8 @@
 {
   "milestone": "V0.2 Autonomous Local Worker",
-  "progress": "about 94%",
-  "current_work": "Isolate every Cline invocation with a fresh per-task --data-dir and a stateless task prompt so stale session history cannot leak between repairs.",
-  "next_step": "Wait for Brain CI to validate per-task Cline session isolation, then launch a new final real-machine repair E2E.",
-  "finish_line": "V0.2 is complete when a GitHub task is picked automatically, an initially failing coding task is repaired by Brain/Cline in an isolated fresh session, final verification passes, only allowed files are applied, and the result is pushed back without manual commands.",
+  "progress": "about 95%",
+  "current_work": "Preserve Cline authentication inside each fresh isolated --data-dir by seeding only provider/auth settings while excluding task history and prior sessions.",
+  "next_step": "Let Brain CI validate auth-preserving session isolation, then launch the next final real-machine repair E2E automatically.",
+  "finish_line": "V0.2 is complete when a GitHub task is picked automatically, an initially failing coding task is repaired by Brain/Cline in an isolated authenticated fresh session, final verification passes, only allowed files are applied, and the result is pushed back without manual commands.",
   "user_action": "None right now. Keep Brain API and Worker Daemon running. A red USER VERIFICATION REQUIRED banner will appear only if manual validation is genuinely required."
 }
