@@ -39,13 +39,13 @@ def _run_git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
 def _safe_pull(repository: Path) -> None:
     status = _run_git(["status", "--porcelain"], cwd=repository)
     if status.returncode != 0:
-        raise RuntimeError(status.stderr.strip() or "git status failed")
-    if status.stdout.strip():
+        raise RuntimeError((status.stderr or "").strip() or "git status failed")
+    if (status.stdout or "").strip():
         raise RuntimeError("worker repository must be clean before automatic pull")
 
     pull = _run_git(["pull", "--ff-only"], cwd=repository)
     if pull.returncode != 0:
-        raise RuntimeError(pull.stderr.strip() or pull.stdout.strip() or "git pull failed")
+        raise RuntimeError((pull.stderr or "").strip() or (pull.stdout or "").strip() or "git pull failed")
 
 
 def discover_pending_tasks(config: DaemonConfig) -> list[Path]:
@@ -58,7 +58,7 @@ def discover_pending_tasks(config: DaemonConfig) -> list[Path]:
 
     pending: list[Path] = []
     for task_path in sorted(tasks_root.glob("*.json")):
-        task = load_task(task_path)
+        load_task(task_path)
         result_path = results_root / f"{task_path.stem}.json"
         if result_path.exists():
             continue
@@ -75,21 +75,30 @@ def process_once(config: DaemonConfig) -> list[str]:
     for task_path in discover_pending_tasks(config):
         task = load_task(task_path)
         result_path = repository / config.results_dir / f"{task_path.stem}.json"
-        result = run_task(task)
+        print(f"PICKED = {task.task_id}", flush=True)
+        result = run_task(
+            task,
+            progress=lambda event, task_id=task.task_id: print(
+                f"TASK {task_id} = {event}",
+                flush=True,
+            ),
+        )
+        print(
+            f"TASK {task.task_id} RESULT = {result.status} | tests_passed={result.tests_passed}",
+            flush=True,
+        )
         write_result(result_path, result)
 
         if config.publish_results:
+            print(f"PUBLISHING = {task.task_id}", flush=True)
             publish_result_file(result_path)
+            print(f"PUBLISHED = {task.task_id}", flush=True)
 
         processed.append(task.task_id)
     return processed
 
 
-def run_daemon(
-    config: DaemonConfig,
-    *,
-    sleep_fn: SleepFn = time.sleep,
-) -> None:
+def run_daemon(config: DaemonConfig, *, sleep_fn: SleepFn = time.sleep) -> None:
     if config.poll_seconds <= 0:
         raise ValueError("poll_seconds must be > 0")
 
