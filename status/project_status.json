@@ -1,16 +1,16 @@
 {
   "milestone": "V0.8 Goal Intake / Autonomous Orchestration",
-  "percent": 12,
-  "progress": "V0.7 Autonomous Recovery frozen at 100%; V0.8.1 Goal Intake Request/Result contract and tests committed",
-  "execution_name": "V0.8.1 Goal Intake Contract",
-  "execution_percent": 68,
+  "percent": 28,
+  "progress": "V0.8.1 Goal Intake Contract PASS; V0.8.2 Intake -> Skill Router implementation and tests committed",
+  "execution_name": "V0.8.2 Intake -> Skill Router",
+  "execution_percent": 70,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for natural-language Goal Intake normalization",
-  "execution_detail": "GoalIntake now converts one natural-language request into a stable GoalContract without executing agents. It can generate a timestamped goal_id, preserve explicit ids/criteria/constraints/priority, provide a conservative default success criterion when none is supplied, and stamp intake_source/intake_version/received_at metadata. This keeps intake normalization separate from Skill routing and execution so V0.8 can compose existing V0.5-V0.7 components without a monolithic entrypoint.",
+  "execution_step": "Run full regression CI for one-request Goal Intake -> Skill selection -> TaskPlan compilation",
+  "execution_detail": "IntakeSkillRouter now composes GoalIntake with the proven V0.5 SkillRegistry/selector/compiler path. One GoalIntakeRequest becomes a GoalContract, the same source request is matched to a registered Skill, conservative inputs are extracted, and a compiled TaskPlan is produced with the exact same goal_id. The stage remains non-executing and fails closed when no Skill meets confidence, preserving a clean boundary before V0.8.3 durable launch.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.8.1 against the complete regression suite.",
-  "next_step": "If CI is green, mark V0.8.1 DONE and begin V0.8.2 Goal Intake -> Skill Router so the same request selects a registered Skill and compiles a TaskPlan.",
+  "current_work": "Verify V0.8.2 routing compatibility against the complete regression suite.",
+  "next_step": "If CI is green, mark V0.8.2 DONE and begin V0.8.3 Durable Launch Orchestrator to persist the compiled goal/plan and start Supervisor execution automatically.",
   "finish_line": "V0.8 completes when one natural-language request can create a durable Goal, select/compile the right Skill, launch Supervisor execution, persist progress/history, and hand unfinished work to autonomous recovery without manual plumbing.",
-  "user_action": "None. Switch the watcher to ai/v0.8-goal-intake-orchestration when convenient."
+  "user_action": "None. Keep the V0.8 watcher open."
 }
