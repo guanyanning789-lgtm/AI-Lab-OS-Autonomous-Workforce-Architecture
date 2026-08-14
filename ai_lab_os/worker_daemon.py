@@ -19,6 +19,7 @@ from ai_lab_os.worker_protocol import load_task, write_result
 SleepFn = Callable[[float], None]
 _LAST_STATUS_FINGERPRINT: str | None = None
 _LAST_IDLE_MESSAGE: str | None = None
+_LAST_MANAGED_REPO_STATUS: dict[str, str] = {}
 
 
 class WorkerCodeUpdated(RuntimeError):
@@ -75,13 +76,15 @@ def _safe_pull(repository: Path) -> bool:
 def _sync_managed(config: DaemonConfig, repository: Path) -> None:
     if not config.sync_managed_repositories:
         return
+
     config_path = repository / config.managed_repositories_file
     for result in sync_managed_repositories(config_path):
         suffix = f" | {result.message}" if result.message else ""
-        print(
-            f"MANAGED REPO {result.name} = {result.status}{suffix}",
-            flush=True,
-        )
+        message = f"MANAGED REPO {result.name} = {result.status}{suffix}"
+        if _LAST_MANAGED_REPO_STATUS.get(result.name) == message:
+            continue
+        _LAST_MANAGED_REPO_STATUS[result.name] = message
+        print(message, flush=True)
 
 
 def _print_project_status(config: DaemonConfig, repository: Path) -> None:
