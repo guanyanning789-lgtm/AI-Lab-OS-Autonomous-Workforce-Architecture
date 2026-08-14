@@ -17,6 +17,7 @@ from ai_lab_os.supervisor_loop import SupervisorPolicy, TaskExecutor
 class RecoveryHandoffResult:
     launch: DurableLaunchResult
     recovery: RecoveryScanReport | None
+    durable_status: str | None = None
 
     @property
     def goal_id(self) -> str:
@@ -28,8 +29,15 @@ class RecoveryHandoffResult:
             return self.launch.supervisor.status
         for result in self.recovery.results:
             if result.goal_id == self.goal_id:
+                # RecoveryAction.NONE means the policy deliberately left the
+                # durable lifecycle state untouched (for example complete,
+                # paused, cancelled, or approval_required). "no_action" is an
+                # internal recovery outcome and must never replace that state
+                # at the product boundary.
+                if result.status == "no_action" and self.durable_status is not None:
+                    return self.durable_status
                 return result.status
-        return self.launch.supervisor.status
+        return self.durable_status or self.launch.supervisor.status
 
     @property
     def handed_off(self) -> bool:
@@ -49,13 +57,7 @@ def launch_with_recovery_handoff(
     replan_handler: ReplanHandler | None = None,
     min_score: int = 2,
 ) -> RecoveryHandoffResult:
-    """Launch one natural-language goal and automatically hand unfinished work to recovery.
-
-    A completed launch is returned immediately. Any durable non-complete result is
-    left in JsonGoalStore by Supervisor and then consumed through the same bounded
-    recovery path used by RecoveryDaemon. This removes the manual launch->resume
-    plumbing without weakening recovery policy or persistence semantics.
-    """
+    """Launch one natural-language goal and automatically hand unfinished work to recovery."""
 
     launched = launch_goal(
         request,
@@ -67,8 +69,13 @@ def launch_with_recovery_handoff(
         min_score=min_score,
     )
     if launched.supervisor.status == "complete":
-        return RecoveryHandoffResult(launch=launched, recovery=None)
+        return RecoveryHandoffResult(
+            launch=launched,
+            recovery=None,
+            durable_status="complete",
+        )
 
+    durable_status = goal_store.load(launched.goal_id).status
     report = scan_once(
         executor,
         goal_store,
@@ -77,4 +84,8 @@ def launch_with_recovery_handoff(
         history_store=history_store,
         replan_handler=replan_handler,
     )
-    return RecoveryHandoffResult(launch=launched, recovery=report)
+    return RecoveryHandoffResult(
+        launch=launched,
+        recovery=report,
+        durable_status=durable_status,
+    )
