@@ -1,8 +1,8 @@
 {
   "milestone": "V0.3 Supervisor Runtime",
-  "progress": "V0.3.1 Goal Contract PASS; V0.3.2 Task Planner implemented and awaiting CI verification",
-  "current_work": "Task Planner now converts one GoalContract into an explicit dependency-safe Analyze -> Implement -> Verify plan. The planner is deterministic in V0.3.2, preserves goal success criteria and constraints, validates task IDs/dependencies/sequencing, serializes plans to JSON, and does not execute tasks yet. A read-only terminal watcher was also added so remote project progress can be observed continuously without modifying the local working tree.",
-  "next_step": "Verify V0.3.2 in GitHub Actions. If green, freeze the planner contract and implement V0.3.3 Task State Machine with READY/RUNNING/VERIFYING/COMPLETE plus FAILED/RETRY/REPAIR/REPLAN transitions.",
+  "progress": "V0.3.1 Goal Contract PASS; V0.3.2 Task Planner PASS (42 tests); V0.3.3 Task State Machine implemented and awaiting CI verification",
+  "current_work": "The supervisor runtime now tracks every planned task through PENDING -> READY -> RUNNING -> VERIFYING -> COMPLETE, unlocks dependent tasks only after prerequisites complete, records attempts and last errors, and supports FAILED -> RETRY / REPAIR / REPLAN recovery paths. Unit tests cover dependency unlocking, invalid transitions, retries, repairs, replans, and full-plan completion.",
+  "next_step": "Verify V0.3.3 in GitHub Actions. If green, freeze the state contract and implement V0.3.4 Supervisor Loop that repeatedly selects the next READY task, dispatches it, records outcomes, triggers recovery when needed, and decides when the overall goal is complete.",
   "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
-  "user_action": "Optional: run scripts/watch_project_status.py in a terminal to see remote development status updates continuously. No manual verification is required yet."
+  "user_action": "None. Keep scripts/watch_project_status.py running if you want continuous remote progress updates in the terminal."
 }
