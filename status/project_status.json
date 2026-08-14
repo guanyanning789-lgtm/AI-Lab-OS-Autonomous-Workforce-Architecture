@@ -1,16 +1,16 @@
 {
   "milestone": "V0.7 Autonomous Recovery / Goal Continuation",
-  "percent": 84,
-  "progress": "V0.7.1 Durable Recovery Policy PASS; V0.7.2 Recovery Runner PASS; V0.7.3 bounded Autonomous Replan PASS; V0.7.4 Recovery Daemon implementation committed; V0.7.5 autonomous recovery graduation regression and real local script committed",
+  "percent": 100,
+  "progress": "V0.7.1 Durable Recovery Policy PASS; V0.7.2 Recovery Runner PASS; V0.7.3 bounded Autonomous Replan PASS; V0.7.4 Recovery Daemon PASS; V0.7.5 real local autonomous recovery E2E PASS",
   "execution_name": "V0.7.5 Real Autonomous Recovery E2E",
-  "execution_percent": 72,
-  "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for daemon-discovered recovery without manual resume",
-  "execution_detail": "The V0.7.5 graduation flow creates a natural-language Research -> Coding -> Computer Skill plan, executes exactly one Supervisor cycle so Research completes and the durable goal stops with resume_cursor at Coding, then starts only RecoveryDaemon. The daemon must discover the persisted unfinished goal itself, RecoveryPolicy must choose RESUME, RecoveryRunner must re-enter the restart-safe Supervisor, Coding and Computer must complete, Research must not run again after RESUME, the final cursor must clear, and the event stream must reach GOAL_COMPLETE. The real local script uses SearXNG, local pytest coding verification, and Brain Windows mock with approved=false/dry_run=true.",
-  "execution_result": "執行中...",
+  "execution_percent": 100,
+  "execution_state": "DONE",
+  "execution_step": "Graduation verification complete",
+  "execution_detail": "A real natural-language Research -> Coding -> Computer Skill plan executed exactly one Supervisor cycle so Research completed and the durable goal stopped with resume_cursor at Coding. Only RecoveryDaemon was then started; without any manual resume call it discovered the unfinished goal, RecoveryPolicy selected RESUME, RecoveryRunner re-entered the restart-safe Supervisor, Coding and Computer completed, completed Research was not repeated after resume, the final cursor cleared, and the event stream reached GOAL_COMPLETE. Computer real actions remained disabled with approved=false and dry_run=true.",
+  "execution_result": "DONE - V0.7 Autonomous Recovery graduated locally",
   "execution_error": "",
-  "current_work": "Verify V0.7.4 daemon plus V0.7.5 graduation semantics against the complete regression suite.",
-  "next_step": "If CI is green, pull ai/v0.7-autonomous-recovery locally and run scripts/manual_v075_autonomous_recovery_e2e.py against Brain :8000 and SearXNG :8888. Mark V0.7 DONE only after daemon-only recovery reaches GOAL_COMPLETE without re-running completed Research.",
-  "finish_line": "V0.7 completes when an interrupted durable natural-language Skill goal is discovered and resumed proactively without a manual resume command, continues safely through the remaining agents, and reaches GOAL_COMPLETE or explicit escalation.",
-  "user_action": "None until CI is green. Keep the V0.7 watcher open."
+  "current_work": "Freeze V0.7 and begin V0.8 Goal Intake / Autonomous Orchestration toward V1.0.",
+  "next_step": "Start V0.8.1 Goal Intake Contract so a single natural-language request can create/persist a Goal, select/compile a Skill, launch execution, and hand unfinished work to the recovery daemon without manual plumbing.",
+  "finish_line": "V0.7 is complete: interrupted durable goals can be discovered proactively, assigned bounded recovery actions, resumed without a manual resume command, and continued safely to GOAL_COMPLETE or explicit escalation.",
+  "user_action": "None. V0.7 is complete. Switch the watcher to the V0.8 branch after it is created."
 }
