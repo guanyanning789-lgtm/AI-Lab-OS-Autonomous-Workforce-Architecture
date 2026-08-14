@@ -1,16 +1,16 @@
 {
   "milestone": "V0.8 Goal Intake / Autonomous Orchestration",
-  "percent": 66,
-  "progress": "V0.8.1 Goal Intake Contract PASS; V0.8.2 Intake -> Skill Router PASS; V0.8.3 Durable Launch PASS; V0.8.4 automatic Recovery Handoff implementation and tests committed",
-  "execution_name": "V0.8.4 Recovery Handoff",
-  "execution_percent": 72,
+  "percent": 86,
+  "progress": "V0.8.1 Goal Intake Contract PASS; V0.8.2 Intake -> Skill Router PASS; V0.8.3 Durable Launch PASS; V0.8.4 Recovery Handoff PASS; V0.8.5 one-request real E2E script and CI regression committed",
+  "execution_name": "V0.8.5 One-Request Real E2E",
+  "execution_percent": 74,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for automatic launch-to-recovery handoff",
-  "execution_detail": "RecoveryHandoff now composes DurableLaunch with the proven RecoveryDaemon scan path. Completed launches return immediately without recovery. Any durable non-complete launch remains persisted in JsonGoalStore and is automatically passed through bounded recovery, so a cycle-limited/interrupted goal can continue without an explicit manual resume call. The handoff reuses the same RecoveryPolicy/Supervisor contracts and does not bypass persistence or safety gates.",
+  "execution_step": "Run full regression CI, then execute the one-request real graduation script on the local Brain + SearXNG backends",
+  "execution_detail": "V0.8.5 now exposes the intended graduation path: one GoalIntakeRequest enters the Skill registry, compiles a TaskPlan, starts durable Supervisor execution, deliberately stops after one launch cycle, and automatically hands the same persisted goal to bounded recovery. The real manual E2E uses the existing Research/Coding/Computer router with computer_approved=false and computer_dry_run=true, and rejects any recovery that repeats the already-completed first task.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.8.4 handoff semantics and completed-task non-repetition against the complete regression suite.",
-  "next_step": "If CI is green, mark V0.8.4 DONE and build V0.8.5 One-Request Real E2E using the real Research/Coding/Computer router so one natural-language request reaches GOAL_COMPLETE without manual orchestration plumbing.",
-  "finish_line": "V0.8 completes when one natural-language request can create a durable Goal, select/compile the right Skill, launch Supervisor execution, persist progress/history, and automatically hand unfinished work to recovery without manual plumbing.",
-  "user_action": "None. Keep the V0.8 watcher open."
+  "current_work": "Verify the one-request orchestration contract against the complete CI suite before local real-backend graduation.",
+  "next_step": "If CI is green, run scripts/manual_v085_one_request_real_e2e.py against Brain at 127.0.0.1:8000 and SearXNG at 127.0.0.1:8888. RESULT=DONE and GOAL_COMPLETE will graduate V0.8.",
+  "finish_line": "V0.8 is complete when one natural-language request alone selects the Skill, launches durable multi-agent work, survives a forced partial launch through automatic recovery handoff, avoids repeating completed work, and reaches GOAL_COMPLETE with real local backends.",
+  "user_action": "Wait for CI. When asked, run the single V0.8.5 graduation command in the terminal."
 }
