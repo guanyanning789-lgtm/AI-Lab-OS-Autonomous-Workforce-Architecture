@@ -92,8 +92,8 @@ def test_process_once_publishes_when_enabled(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(
         daemon_module,
-        "publish_result",
-        lambda repository, result_path: published.append((Path(repository), Path(result_path))),
+        "publish_result_file",
+        lambda result_path: published.append(Path(result_path)),
     )
 
     processed = process_once(
@@ -105,4 +105,4 @@ def test_process_once_publishes_when_enabled(monkeypatch, tmp_path):
     )
 
     assert processed == ["three"]
-    assert published == [(repo.resolve(), repo / "results" / "task-0003.json")]
+    assert published == [(repo / "results" / "task-0003.json").resolve()]
