@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 90,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS; V0.4.3 Computer Executor DONE; V0.4.4 Runtime Composition PASS (76 tests); V0.4.5 local real multi-agent E2E ready",
+  "percent": 92,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS; V0.4.3 Computer Executor DONE; V0.4.4 Runtime Composition PASS (76 tests); V0.4.5 local runner import path fixed and ready for rerun",
   "execution_name": "V0.4.5 Real Multi-Agent E2E",
-  "execution_percent": 70,
+  "execution_percent": 78,
   "execution_state": "RUNNING",
-  "execution_step": "Run one local Supervisor plan through live SearXNG, local Coding worker pytest, and Brain Windows mock backend",
-  "execution_detail": "The graduation runner now constructs a dependency-ordered Research -> Coding -> Computer plan. Research calls local SearXNG; Coding uses the real local_worker with repair disabled and a safe regression pytest command; Computer calls the verified Brain /task/windows/e2e adapter with approved=false and dry_run=true so no physical desktop action is allowed.",
+  "execution_step": "Re-run the local graduation E2E after fixing script import resolution",
+  "execution_detail": "The first local V0.4.5 run failed before execution because scripts/manual_v045_real_multi_agent_e2e.py could not import ai_lab_os when launched directly from the scripts directory. The runner now inserts the repository root into sys.path before imports. No agent execution occurred during the failed attempt.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Await one local graduation run to prove all three real executor adapters cooperate under the same Supervisor loop.",
-  "next_step": "Pull the branch and run scripts/manual_v045_real_multi_agent_e2e.py. If it reaches GOAL_COMPLETE, mark V0.4 DONE and immediately begin V0.5 Skill System.",
+  "current_work": "Await one clean rerun of the real local Research -> Coding -> Computer Supervisor plan.",
+  "next_step": "Pull the latest V0.4 branch and rerun scripts/manual_v045_real_multi_agent_e2e.py. If GOAL_COMPLETE is reached, mark V0.4 DONE and start V0.5 Skill System immediately.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks run together behind Supervisor/AgentRouter in one real local multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "Run the V0.4.5 local graduation command. Computer remains mock-only; no real Windows action will be performed."
+  "user_action": "Pull and rerun the same V0.4.5 graduation command. Computer remains mock-only; no physical Windows action is allowed."
 }
