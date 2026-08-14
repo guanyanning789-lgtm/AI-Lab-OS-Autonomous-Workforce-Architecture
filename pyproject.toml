@@ -1,0 +1,9 @@
+[project]
+name = "ai-lab-os"
+version = "0.1.0"
+description = "Autonomous Workforce Architecture for AI Lab OS"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
