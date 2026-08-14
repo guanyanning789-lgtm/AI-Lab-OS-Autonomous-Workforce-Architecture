@@ -88,6 +88,27 @@ def test_compile_skill_plan_preserves_literal_json_metadata() -> None:
     assert task.metadata["args_json"] == "{}"
 
 
+def test_compile_skill_plan_preserves_literal_json_object_with_fields() -> None:
+    skill = SkillContract(
+        skill_id="json-metadata",
+        name="JSON Metadata",
+        description="Preserve JSON metadata literals.",
+        inputs=(),
+        required_agents=(AgentKind.COMPUTER,),
+        steps=(
+            SkillStepSpec(
+                step_id="computer",
+                kind=PlannedTaskKind.VERIFY,
+                agent=AgentKind.COMPUTER,
+                description_template="Verify.",
+                metadata_templates={"args_json": '{"target":"100,100"}'},
+            ),
+        ),
+    )
+    task = compile_skill_plan(skill, {}, goal_id="goal-json").plan.tasks[0]
+    assert task.metadata["args_json"] == '{"target":"100,100"}'
+
+
 def test_compile_skill_plan_rejects_missing_inputs() -> None:
     with pytest.raises(ValueError, match="missing required skill input: topic"):
         compile_skill_plan(_skill(), {}, goal_id="goal-001")
