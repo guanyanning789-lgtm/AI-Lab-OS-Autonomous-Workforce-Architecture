@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from ai_lab_os.disk_inspector import DiskInspectorExecutor, render_disk_report
 from ai_lab_os.execution_history import JsonExecutionHistory
 from ai_lab_os.final_entrypoint import FinalNaturalLanguageEntrypoint
 from ai_lab_os.models import AgentKind
@@ -36,6 +37,33 @@ def _check(url: str) -> None:
             response.read(1)
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise RuntimeError(f"backend unavailable: {url}: {exc}") from exc
+
+
+def _is_disk_goal(goal: str) -> bool:
+    text = goal.lower()
+    return any(token in text for token in ("磁盘", "磁碟", "硬盘", "硬碟", "disk", "drive", "剩余空间", "剩餘空間", "大文件"))
+
+
+def _disk_skill() -> SkillContract:
+    return SkillContract(
+        skill_id="disk-inspector-readonly",
+        name="Disk Inspector Read Only",
+        description="Read Windows disk capacity and bounded file-system usage evidence without modifying anything.",
+        inputs=(SkillInputSpec("topic", "Natural-language disk inspection goal."),),
+        required_agents=(AgentKind.COMPUTER,),
+        permissions=("filesystem.read",),
+        success_criteria=("Real disk capacity evidence was collected.",),
+        metadata={"triggers": "磁盘,磁碟,硬盘,硬碟,disk,drive,空间,空間,大文件"},
+        steps=(
+            SkillStepSpec(
+                "inspect",
+                PlannedTaskKind.VERIFY,
+                AgentKind.COMPUTER,
+                "Inspect local disks read-only for {topic}.",
+                metadata_templates={"mode": "read_only"},
+            ),
+        ),
+    )
 
 
 def _general_skill() -> SkillContract:
@@ -69,33 +97,43 @@ def main() -> int:
         print("ERROR = goal must not be empty")
         return 2
 
-    try:
-        _check(args.brain_base_url.rstrip("/") + "/openapi.json")
-        _check(args.searxng_base_url.rstrip("/") + "/search?q=ai-lab&format=json")
-    except RuntimeError as exc:
-        print(f"ERROR = {exc}")
-        return 2
+    disk_goal = _is_disk_goal(goal)
+    disk_executor: DiskInspectorExecutor | None = None
 
-    config = MultiAgentRuntimeConfig(
-        repository_path=str(repo),
-        branch=_branch(repo),
-        tests=("python -m pytest -q",),
-        allowed_files=(),
-        brain_base_url=args.brain_base_url,
-        searxng_base_url=args.searxng_base_url,
-        allow_cline_repair=False,
-        computer_approved=False,
-        computer_dry_run=True,
-    )
-    router = build_core_router(config)
-    registry = SkillRegistry.from_skills((_general_skill(),))
+    if disk_goal:
+        registry = SkillRegistry.from_skills((_disk_skill(),))
+        disk_executor = DiskInspectorExecutor()
+        executor = disk_executor
+        mode = "read-only Disk Inspector; no delete/move/rename/write operations"
+    else:
+        try:
+            _check(args.brain_base_url.rstrip("/") + "/openapi.json")
+            _check(args.searxng_base_url.rstrip("/") + "/search?q=ai-lab&format=json")
+        except RuntimeError as exc:
+            print(f"ERROR = {exc}")
+            return 2
+        config = MultiAgentRuntimeConfig(
+            repository_path=str(repo),
+            branch=_branch(repo),
+            tests=("python -m pytest -q",),
+            allowed_files=(),
+            brain_base_url=args.brain_base_url,
+            searxng_base_url=args.searxng_base_url,
+            allow_cline_repair=False,
+            computer_approved=False,
+            computer_dry_run=True,
+        )
+        router = build_core_router(config)
+        registry = SkillRegistry.from_skills((_general_skill(),))
+        executor = router.execute
+        mode = "safe interactive CLI; real Computer actions disabled"
 
     with tempfile.TemporaryDirectory(prefix="ai-lab-cli-") as temporary:
         store = JsonGoalStore(Path(temporary) / "goals.json")
         history = JsonExecutionHistory(Path(temporary) / "history.jsonl")
         runtime = ProductRuntime(
             registry,
-            router.execute,
+            executor,
             store,
             history_store=history,
             launch_policy=SupervisorPolicy(max_cycles=50),
@@ -104,14 +142,24 @@ def main() -> int:
         entry = FinalNaturalLanguageEntrypoint(runtime)
         print("AI LAB V1.0")
         print(f"GOAL = {goal}")
-        print("MODE = safe interactive CLI; real Computer actions disabled")
+        print(f"MODE = {mode}")
         print()
         result = entry.run(goal)
         report = ProgressReportService(runtime).get(result.goal_id)
         print(render_progress(report))
         print(f"SKILL = {result.skill_id}")
-        print(f"RESULT = {'DONE' if report.status == 'complete' else report.status.upper()}")
-        return 0 if report.status == "complete" else 1
+
+        if disk_executor is not None:
+            if disk_executor.last_report is None or not disk_executor.last_report.has_evidence:
+                print("RESULT = FAILED")
+                print("ERROR = GOAL_COMPLETE blocked because no real disk evidence was produced")
+                return 1
+            print()
+            print(render_disk_report(disk_executor.last_report))
+
+        done = report.status == "complete"
+        print(f"RESULT = {'DONE' if done else report.status.upper()}")
+        return 0 if done else 1
 
 
 if __name__ == "__main__":
