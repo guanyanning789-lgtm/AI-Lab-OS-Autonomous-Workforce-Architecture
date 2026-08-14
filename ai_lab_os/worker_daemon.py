@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from ai_lab_os.local_worker import run_task
-from ai_lab_os.result_publisher import publish_result
+from ai_lab_os.result_publisher import publish_result_file
 from ai_lab_os.worker_protocol import load_task, write_result
 
 
@@ -79,7 +79,7 @@ def process_once(config: DaemonConfig) -> list[str]:
         write_result(result_path, result)
 
         if config.publish_results:
-            publish_result(repository, result_path)
+            publish_result_file(result_path)
 
         processed.append(task.task_id)
     return processed
