@@ -26,12 +26,7 @@ class ComputerBackend(Protocol):
 
 
 class HttpComputerBackend:
-    """HTTP transport for a local Windows/computer action service.
-
-    The endpoint is intentionally configurable because the real Windows host may
-    live in a separate local process/repository. Safe defaults keep requests in
-    dry-run and unapproved mode until a local E2E explicitly opts in.
-    """
+    """Generic HTTP transport for a computer action service."""
 
     def __init__(
         self,
@@ -53,6 +48,9 @@ class HttpComputerBackend:
             "approved": request.approved,
             "dry_run": request.dry_run,
         }
+        return self._post(payload)
+
+    def _post(self, payload: dict[str, object]) -> dict[str, object]:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         http_request = urllib.request.Request(
             self.base_url + self.path,
@@ -73,6 +71,65 @@ class HttpComputerBackend:
         if not isinstance(data, dict):
             raise RuntimeError("Computer backend response must be a JSON object")
         return data
+
+
+class BrainWindowsE2EBackend(HttpComputerBackend):
+    """Adapter for the real AI Lab Brain /task/windows/e2e contract.
+
+    The Brain endpoint accepts step actions click/type/hotkey. In safe mode the
+    adapter always sends mock=true and allow_real_actions=false. A Computer task
+    must explicitly provide metadata['action']; optional metadata['args_json'] can
+    carry action arguments as a JSON object.
+    """
+
+    ALLOWED_ACTIONS = {"click", "type", "hotkey"}
+
+    def __init__(
+        self,
+        base_url: str = "http://127.0.0.1:8000",
+        *,
+        path: str = "/task/windows/e2e",
+        timeout_seconds: int = 60,
+    ) -> None:
+        super().__init__(base_url, path=path, timeout_seconds=timeout_seconds)
+
+    def execute(self, request: ComputerActionRequest) -> dict[str, object]:
+        action = request.metadata.get("action", "").strip().lower()
+        if action not in self.ALLOWED_ACTIONS:
+            raise RuntimeError(
+                "Computer task metadata.action must be one of: click, type, hotkey"
+            )
+
+        raw_args = request.metadata.get("args_json", "").strip()
+        args: dict[str, object] = {}
+        if raw_args:
+            try:
+                parsed = json.loads(raw_args)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("Computer task metadata.args_json must be valid JSON") from exc
+            if not isinstance(parsed, dict):
+                raise RuntimeError("Computer task metadata.args_json must decode to an object")
+            args = parsed
+
+        step: dict[str, object] = {
+            "step_id": 1,
+            "action": action,
+            "args": args,
+        }
+        window_title = request.metadata.get("window_title", "").strip()
+        if window_title:
+            step["window_title"] = window_title
+        expected_process = request.metadata.get("expected_process", "").strip()
+        if expected_process:
+            step["expected_process"] = expected_process
+
+        payload: dict[str, object] = {
+            "task_id": request.task_id,
+            "steps": [step],
+            "mock": request.dry_run or not request.approved,
+            "allow_real_actions": request.approved and not request.dry_run,
+        }
+        return self._post(payload)
 
 
 @dataclass
@@ -108,6 +165,9 @@ class ComputerExecutor:
         if success is None:
             status = str(response.get("status", "")).strip().lower()
             success = status in {"success", "complete", "completed", "pass", "passed"}
+            errors = response.get("errors")
+            if isinstance(errors, list) and errors:
+                success = False
 
         message = str(
             response.get("message")
