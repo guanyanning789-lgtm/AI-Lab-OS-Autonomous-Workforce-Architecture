@@ -36,7 +36,7 @@ def build_decision_groups(plan: CleanupPlan, families: tuple[VersionFamily, ...]
     groups: list[DecisionGroup] = []
 
     for family in families:
-        paths = tuple(item.path for item in family.items)
+        paths = tuple(item.path for item in family.members)
         grouped_paths.update(paths)
         groups.append(
             DecisionGroup(
@@ -44,7 +44,7 @@ def build_decision_groups(plan: CleanupPlan, families: tuple[VersionFamily, ...]
                 kind=DecisionGroupKind.VERSION_FAMILY,
                 item_count=len(paths),
                 approval_required=True,
-                summary=f"{family.family}: keep latest {family.latest_version}; review/archive {max(0, len(paths)-1)} historical versions",
+                summary=f"{family.family}: keep latest v{family.latest.raw_version}; review/archive {len(family.historical)} historical versions",
                 paths=paths,
             )
         )
