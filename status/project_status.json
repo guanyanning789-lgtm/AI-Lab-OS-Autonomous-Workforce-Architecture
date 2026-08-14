@@ -1,16 +1,16 @@
 {
   "milestone": "V0.9 Product Runtime / Unified Goal API",
-  "percent": 86,
-  "progress": "V0.9.1 Unified Goal API PASS; V0.9.2 Goal Query / Status / Events PASS; V0.9.3 Always-On Runtime PASS; V0.9.4 Pause / Cancel / Resume PASS; V0.9.5 real ProductRuntime graduation script and CI regression committed",
+  "percent": 100,
+  "progress": "V0.9.1 Unified Goal API PASS; V0.9.2 Goal Query / Status / Events PASS; V0.9.3 Always-On Runtime PASS; V0.9.4 Pause / Cancel / Resume PASS; V0.9.5 real local ProductRuntime E2E PASS",
   "execution_name": "V0.9.5 Real Product E2E",
-  "execution_percent": 74,
-  "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI before local real ProductRuntime graduation",
-  "execution_detail": "The V0.9.5 graduation path now uses ProductRuntime public product boundaries rather than direct Goal/TaskPlan/Supervisor plumbing. The real local script builds the proven Research/Coding/Computer router, submits one natural-language GoalSubmissionRequest through ProductRuntime, deliberately limits initial launch to one cycle so automatic recovery handoff is exercised, queries durable progress/events through ProductRuntime, runs a bounded runtime tick, verifies GOAL_COMPLETE and a cleared resume cursor, and checks completed-goal lifecycle controls fail closed. Computer execution remains approved=false / dry_run=true. Dedicated CI tests cover the same public-boundary semantics without external backends.",
-  "execution_result": "V0.9.4 PASS; V0.9.5 validating...",
+  "execution_percent": 100,
+  "execution_state": "DONE",
+  "execution_step": "Product runtime graduation verification complete",
+  "execution_detail": "Local graduation proved that ProductRuntime public boundaries alone can accept one natural-language GoalSubmissionRequest, select the Research/Coding/Computer Skill, execute the real local multi-agent router, exercise automatic durable recovery handoff after a bounded initial launch, expose 100% durable progress and GOAL_COMPLETE through product query/events, run an idle bounded recovery tick, clear the resume cursor, and keep Computer execution fail-safe with approved=false / dry_run=true.",
+  "execution_result": "DONE - V0.9 graduated",
   "execution_error": "",
-  "current_work": "Verify ProductRuntime submission, automatic recovery handoff, durable query/events and terminal lifecycle semantics against the full historical regression suite.",
-  "next_step": "If CI is green, run scripts/manual_v095_real_product_e2e.py locally against Brain and SearXNG. A local GOAL_COMPLETE / RESULT=DONE graduates V0.9 to 100% and opens V1.0 productization/final integration.",
-  "finish_line": "V0.9 completes when one real natural-language request can enter ProductRuntime, execute Research/Coding/Computer through the safe local stack, recover automatically, expose status/events through product queries, and finish GOAL_COMPLETE without manual Goal/TaskPlan/Resume plumbing.",
-  "user_action": "None until CI is green; keep the V0.9 watcher open."
+  "current_work": "V0.9 is complete and frozen as the stable local product runtime foundation.",
+  "next_step": "Begin V1.0 Final Integration: expose ProductRuntime through the final user-facing natural-language entrypoint, start/stop service lifecycle, live progress/reporting, safe approval boundary for real computer actions, and one final end-to-end acceptance path requiring no manual Goal/TaskPlan/Resume plumbing.",
+  "finish_line": "V0.9 graduation achieved: one real natural-language request can enter ProductRuntime, execute Research/Coding/Computer, recover automatically, expose status/events, and finish GOAL_COMPLETE through public product boundaries.",
+  "user_action": "None. V0.9 is complete."
 }
