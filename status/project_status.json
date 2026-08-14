@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 58,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); local Windows E2E pending",
+  "percent": 61,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); real Brain endpoints discovered; schema-aware Windows E2E runner ready",
   "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 80,
+  "execution_percent": 88,
   "execution_state": "RUNNING",
-  "execution_step": "Discover the real local Windows action endpoint before physical-desktop E2E",
-  "execution_detail": "GitHub CI passed 71 tests. A probe script now reads the local Brain/OpenAPI schema and lists action/screen/computer/windows/input routes, so the real E2E uses the actual endpoint instead of a guessed transport path.",
+  "execution_step": "Inspect the live /task/windows/e2e schema and perform a guarded dry-run",
+  "execution_detail": "The local Brain is online and exposes /actions/execute, /screen/agent, /screen/understand, and /task/windows/e2e. A schema-aware runner now resolves the real request body from openapi.json and refuses to POST unless an explicit dry_run or approval safety gate is present.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Waiting for one local endpoint-discovery result from the user's Windows host.",
-  "next_step": "Run scripts/probe_computer_backend.py locally. Use the discovered real endpoint to wire the final Computer backend smoke test, then execute one harmless real Windows action and verify it before marking V0.4.3 DONE.",
+  "current_work": "Validate the real Windows E2E contract without guessing request fields or changing the desktop.",
+  "next_step": "Pull the branch and run scripts/run_windows_e2e_v043.py first in schema-only mode. If the endpoint exposes an explicit safety gate, run it once with --send-dry-run. Use the response to finish the ComputerExecutor transport and then perform one harmless real action before marking V0.4.3 DONE.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "Pull the V0.4 branch and run: python .\\scripts\\probe_computer_backend.py --base-url http://127.0.0.1:8000 . Send me the output."
+  "user_action": "Run the schema-only Windows E2E command and send me the output. No real desktop action will be sent in this first run."
 }
