@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Lab OS — Autonomous Workforce</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07090d;--panel:#0e1218;--panel2:#111722;--line:#222b38;--text:#f6f7f9;--muted:#8c97a8;--ok:#92f7b3;--accent:#e8eef7;--accentText:#090b10;--warn:#ffd479}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 20% 0,#131924 0,transparent 34%),var(--bg);font-family:Inter,Segoe UI,"Microsoft YaHei",sans-serif;color:var(--text)}
+    button,input{font:inherit}.app{max-width:1500px;margin:auto;padding:24px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.brand h1{font-size:28px;margin:0 0 4px}.brand p{margin:0;color:var(--muted)}
+    .status{display:flex;align-items:center;gap:8px;color:var(--ok);font-weight:700}.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 16px var(--ok)}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 35px #0005}.metric{padding:18px}.label{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}.value{font-size:25px;font-weight:800;margin-top:8px}.sub{font-size:13px;color:var(--muted);margin-top:3px}
+    .goal{margin-top:12px;padding:18px}.goalrow{display:flex;gap:10px;margin-top:12px}.goal input{width:100%;border:1px solid var(--line);border-radius:13px;background:#080b10;color:var(--text);padding:14px 15px;outline:none}.goal input:focus{border-color:#526176}.primary{border:0;border-radius:13px;background:var(--accent);color:var(--accentText);padding:0 22px;font-weight:800;cursor:pointer;white-space:nowrap}.primary:hover{filter:brightness(.9)}
+    .grid{display:grid;grid-template-columns:.82fr 1.65fr;gap:12px;margin-top:12px}.flow,.terminalCard{padding:18px}.titlebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.titlebar h2{font-size:16px;margin:0}.badge{font-size:11px;border:1px solid #334052;background:#131b26;border-radius:999px;padding:5px 8px;color:#cbd5e1}
+    .step{position:relative;border:1px solid var(--line);background:#090d13;border-radius:14px;padding:14px;margin-top:9px}.step .srow{display:flex;justify-content:space-between;gap:10px}.step strong{font-size:14px}.step small{display:block;color:var(--muted);margin-top:5px}.done{color:var(--ok)}.running{color:var(--warn)}
+    .actions{display:flex;gap:7px}.ghost{border:1px solid var(--line);background:#0b0f15;color:var(--text);border-radius:9px;padding:7px 10px;cursor:pointer}.terminal{min-height:425px;max-height:425px;overflow:auto;border:1px solid var(--line);background:#05070a;border-radius:14px;padding:16px;font:14px/1.7 Consolas,"SFMono-Regular",monospace;color:#d7dde7}.terminal .muted{color:#657287}.terminal .ok{color:var(--ok)}.terminal .warn{color:var(--warn)}
+    .footer{margin-top:12px;padding:16px 18px;display:flex;justify-content:space-between;gap:16px;align-items:center}.footer b{font-size:14px}.footer span{color:var(--muted);font-size:13px}.shortcut{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:Consolas,monospace;color:#cad3df}
+    @media(max-width:900px){.metrics{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.goalrow{flex-direction:column}.primary{padding:13px}.top{align-items:flex-start;flex-direction:column}} @media(max-width:520px){.metrics{grid-template-columns:1fr}.app{padding:14px}.brand h1{font-size:22px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><div class="brand"><h1>AI LAB OS</h1><p>Personal Autonomous Workforce · V1.0 Control Surface</p></div><div class="status"><span class="dot"></span> SYSTEM ONLINE</div></header>
+  <section class="metrics">
+    <div class="card metric"><div class="label">System</div><div class="value">ONLINE</div><div class="sub">AI Lab V1.0</div></div>
+    <div class="card metric"><div class="label">Current Task</div><div class="value" id="taskCount">00</div><div class="sub" id="taskState">等待任务</div></div>
+    <div class="card metric"><div class="label">Worker</div><div class="value">CLINE</div><div class="sub">Coding Agent</div></div>
+    <div class="card metric"><div class="label">Verification</div><div class="value" id="verifyValue">READY</div><div class="sub">自动验证</div></div>
+  </section>
+  <section class="card goal"><div class="titlebar"><div><div class="label">Natural Language Goal</div><h2 style="margin:4px 0 0">告诉 AI Lab 你要完成什么</h2></div><span class="badge">Supervisor Ready</span></div><div class="goalrow"><input id="goal" value="检查项目，修复失败测试，并完成验证" /><button class="primary" id="run">执行任务</button></div></section>
+  <main class="grid">
+    <section class="card flow"><div class="titlebar"><h2>执行链路</h2><span class="badge">Autonomous Loop</span></div>
+      <div class="step"><div class="srow"><strong>01 · 理解目标</strong><span id="s1">等待</span></div><small>解析自然语言目标与成功标准</small></div>
+      <div class="step"><div class="srow"><strong>02 · 自动规划</strong><span id="s2">等待</span></div><small>生成 Task Contract 与执行步骤</small></div>
+      <div class="step"><div class="srow"><strong>03 · Agent 执行</strong><span id="s3">等待</span></div><small>调用 Cline / Coding / Computer Worker</small></div>
+      <div class="step"><div class="srow"><strong>04 · Verification</strong><span id="s4">等待</span></div><small>测试结果、真实状态与完成条件</small></div>
+      <div class="step"><div class="srow"><strong>05 · Repair / Replan</strong><span id="s5">自动</span></div><small>失败时 Retry → Repair → Replan</small></div>
+    </section>
+    <section class="card terminalCard"><div class="titlebar"><h2>实时终端</h2><div class="actions"><button class="ghost" id="demo">演示</button><button class="ghost" id="clear">清空</button><button class="ghost" id="pause">暂停滚动</button></div></div><div class="terminal" id="terminal"><div>AI LAB OS TERMINAL</div><div class="muted">────────────────────────────────────────────────────</div><div>[SYSTEM] Local control surface ready.</div><div>[INFO] 当前版本为前端可视化壳层，等待连接 AI Lab Backend API。</div><div>[TIP] 在上方输入目标后点击「执行任务」查看 V1.0 工作流演示。</div><br><div>$ <span class="ok">▋</span></div></div></section>
+  </main>
+  <section class="card footer"><div><b>North Star</b><br><span>一句自然语言 → Plan → Execute → Verify → Repair / Replan → Complete</span></div><div class="shortcut">双击 START_AI_LAB_OS.bat</div></section>
+</div>
+<script>
+const $=id=>document.getElementById(id),term=$('terminal');let paused=false,timers=[];
+function line(text,cls=''){const d=document.createElement('div');d.textContent=text;if(cls)d.className=cls;term.appendChild(d);if(!paused)term.scrollTop=term.scrollHeight}
+function state(n,text,cls=''){const e=$('s'+n);e.textContent=text;e.className=cls}
+function resetTimers(){timers.forEach(clearTimeout);timers=[]}
+function runDemo(){resetTimers();term.innerHTML='<div>AI LAB OS TERMINAL</div><div class="muted">────────────────────────────────────────────────────</div>';const goal=$('goal').value.trim()||'完成当前任务';$('taskCount').textContent='01';$('taskState').textContent='正在执行';$('verifyValue').textContent='RUNNING';for(let i=1;i<=4;i++)state(i,'等待');state(5,'自动');line('[GOAL] '+goal);const steps=[
+ [350,()=>{state(1,'完成','done');line('[SUPERVISOR] Goal understood.','ok')}],
+ [800,()=>{state(2,'完成','done');line('[PLAN] Task Contract generated.','ok')}],
+ [1350,()=>{state(3,'运行中','running');line('[AGENT] Launching Cline worker...','warn')}],
+ [2050,()=>{line('[CLINE] Inspecting repository...')}],
+ [2700,()=>{line('[CLINE] Applying candidate changes...')}],
+ [3400,()=>{state(3,'完成','done');state(4,'运行中','running');line('[VERIFY] Running tests...','warn')}],
+ [4200,()=>{line('[TEST] 446 passed.','ok')}],
+ [4750,()=>{state(4,'PASS','done');line('[VERIFY] Final verification = PASS','ok');$('verifyValue').textContent='PASS'}],
+ [5300,()=>{line('[RESULT] COMPLETE','ok');$('taskState').textContent='已完成'}]
+ ];steps.forEach(([ms,fn])=>timers.push(setTimeout(fn,ms)))}
+$('run').onclick=runDemo;$('demo').onclick=runDemo;$('clear').onclick=()=>{resetTimers();term.innerHTML='<div>$ <span class="ok">▋</span></div>'};$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'恢复滚动':'暂停滚动'};
+</script>
+</body>
+</html>
