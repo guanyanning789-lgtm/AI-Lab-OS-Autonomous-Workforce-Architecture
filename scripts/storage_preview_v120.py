@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from ai_lab_os.storage_canonical_architecture import render_architecture
 from ai_lab_os.storage_cleanup_plan import build_cleanup_plan, render_cleanup_plan
 from ai_lab_os.storage_collision_guard import guard_plan
 from ai_lab_os.storage_curator import StoragePlan, build_storage_plan
@@ -34,7 +35,7 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.6 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.7 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
     parser.add_argument("--max-items", type=int, default=15)
@@ -43,11 +44,11 @@ def main() -> int:
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.6 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.7 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = composite project roots + dependency boundaries + families + grouped explanations")
+    print("INTEL  = project protection + grouped decisions + canonical folder architecture")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
@@ -67,6 +68,8 @@ def main() -> int:
     cleanup = build_cleanup_plan(storage, guards)
     groups = build_decision_groups(cleanup, families)
 
+    print(render_architecture())
+    print()
     print(render_cleanup_plan(cleanup, max_items=max(1, args.max_items)))
     print()
     print("DETECTED PROJECT ROOTS:")
@@ -97,7 +100,7 @@ def main() -> int:
     print(f"TRUNCATED          = {storage.truncated}")
     print("EXECUTED           = False")
     print("RESULT             = PREVIEW_ONLY")
-    print("MESSAGE            = Marker-based and composite project roots are protected as a unit before any organization proposal.")
+    print("MESSAGE            = Canonical folder architecture is defined for long-term clean storage; no files were changed.")
     return 0
 
 
