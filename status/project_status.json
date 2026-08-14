@@ -1,16 +1,16 @@
 {
   "milestone": "V0.6 Persistent Goal / Memory",
-  "percent": 88,
-  "progress": "V0.6.1 Persistent Goal Store PASS; V0.6.2 Supervisor persistence PASS; V0.6.3 Resume After Restart PASS; V0.6.4 Execution History / Memory PASS; V0.6.5 real restart + resume graduation script and CI regression committed",
+  "percent": 100,
+  "progress": "V0.6.1 Persistent Goal Store PASS; V0.6.2 Supervisor persistence PASS; V0.6.3 Resume After Restart PASS; V0.6.4 Execution History / Memory PASS; V0.6.5 real local restart + resume E2E PASS",
   "execution_name": "V0.6.5 Restart + Resume E2E",
-  "execution_percent": 72,
-  "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI before the real local restart/resume graduation test",
-  "execution_detail": "The V0.6.5 graduation flow starts from a natural-language Skill request, compiles Research -> Coding -> Computer tasks, runs exactly one Supervisor cycle with persistent Goal/History stores, then constructs fresh store/router objects to simulate a restarted process and resumes from the persisted cursor. CI asserts Task 1 is not executed again, Tasks 2/3 complete after resume, persistent state ends complete with no cursor, execution history records the interrupted cycle-limit run plus the final complete run, and the event stream reaches GOAL_COMPLETE. The manual local script uses real SearXNG, local coding pytest, and Brain Windows mock with approved=false/dry_run=true.",
-  "execution_result": "執行中...",
+  "execution_percent": 100,
+  "execution_state": "DONE",
+  "execution_step": "Graduation verification complete",
+  "execution_detail": "A real natural-language Skill request was compiled into Research -> Coding -> Computer tasks. Phase 1 completed and persisted Research, stopped at cycle_limit with resume_cursor pointing to Coding, then fresh store/router objects simulated a restart. Post-restart events began at RESUME:<coding>, ran Coding and Computer only, did not re-run completed Research, reached GOAL_COMPLETE, cleared the final resume cursor, and recorded complete execution history with total attempts=3. Computer real actions remained disabled with approved=false and dry_run=true.",
+  "execution_result": "DONE - V0.6 Persistent Goal / Memory graduated locally",
   "execution_error": "",
-  "current_work": "Verify V0.6.5 graduation semantics against the complete regression suite.",
-  "next_step": "If CI is green, pull ai/v0.6-persistent-goal-memory locally and run scripts/manual_v065_restart_resume_e2e.py against Brain :8000 and SearXNG :8888. Mark V0.6 DONE only after GOAL_COMPLETE without repeating completed work.",
-  "finish_line": "V0.6 completes when an in-progress natural-language Skill goal persists across process restart, resumes without repeating completed work, retains durable execution history/evidence, and reaches GOAL_COMPLETE in a real local E2E.",
-  "user_action": "None until CI is green. Keep the V0.6 watcher open."
+  "current_work": "Freeze V0.6 and begin V0.7 Autonomous Recovery / Goal Continuation.",
+  "next_step": "Start V0.7.1 Durable Recovery Policy so persisted FAILED/REPLAN goals can be automatically resumed, repaired, or replanned instead of requiring a manual restart command.",
+  "finish_line": "V0.6 is complete: in-progress natural-language Skill goals survive restart, resume without repeating completed work, preserve durable history/evidence, and reach GOAL_COMPLETE.",
+  "user_action": "None. V0.6 is complete. Switch the watcher to the V0.7 branch after it is created."
 }
