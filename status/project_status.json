@@ -1,0 +1,8 @@
+{
+  "milestone": "V0.2 Autonomous Local Worker",
+  "progress": "about 90%",
+  "current_work": "Fix Cline task focus by limiting its sandbox to explicit allowed files and removing unrelated repository context.",
+  "next_step": "Run GitHub CI, then launch task-0007 as the final real-machine repair validation if CI passes.",
+  "finish_line": "V0.2 is complete when a GitHub task is picked automatically, an initially failing coding task is repaired by Brain/Cline in isolation, final verification passes, only allowed files are applied, and the result is pushed back without manual commands.",
+  "user_action": "None right now. Keep Brain API and Worker Daemon running. A red USER VERIFICATION REQUIRED banner will appear if manual validation is needed."
+}
