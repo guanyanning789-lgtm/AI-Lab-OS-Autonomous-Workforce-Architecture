@@ -16,6 +16,7 @@ from ai_lab_os.storage_decision_groups import build_decision_groups, render_deci
 from ai_lab_os.storage_group_detail import render_group_details
 from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
 from ai_lab_os.storage_path_planner import build_migration_plan
+from ai_lab_os.storage_project_roots import apply_project_root_protection, detect_project_roots
 from ai_lab_os.storage_subgroups import build_subgroups, render_subgroups
 
 
@@ -33,7 +34,7 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.4 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.5 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
     parser.add_argument("--max-items", type=int, default=15)
@@ -42,11 +43,11 @@ def main() -> int:
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.4 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.5 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = project boundaries + families + groups + explanations + semantic subgroups")
+    print("INTEL  = project roots + dependency boundaries + families + grouped explanations")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
@@ -56,15 +57,25 @@ def main() -> int:
         return 1
 
     raw = build_storage_plan(roots, max_files=max(1, args.max_files), duplicate_min_bytes=max(1, args.duplicate_min_mb) * 1024 * 1024)
-    bounded_candidates = apply_project_boundaries(raw.candidates)
-    storage = StoragePlan(bounded_candidates, raw.duplicates, raw.reclaimable_bytes, raw.scanned_files, raw.truncated)
-    families = build_version_families(bounded_candidates)
+    boundary_candidates = apply_project_boundaries(raw.candidates)
+    project_roots = detect_project_roots(boundary_candidates)
+    protected_candidates = apply_project_root_protection(boundary_candidates, project_roots)
+    storage = StoragePlan(protected_candidates, raw.duplicates, raw.reclaimable_bytes, raw.scanned_files, raw.truncated)
+    families = build_version_families(protected_candidates)
     proposals = build_migration_plan(storage.candidates)
     guards = guard_plan(proposals)
     cleanup = build_cleanup_plan(storage, guards)
     groups = build_decision_groups(cleanup, families)
 
     print(render_cleanup_plan(cleanup, max_items=max(1, args.max_items)))
+    print()
+    print("DETECTED PROJECT ROOTS:")
+    if not project_roots:
+        print("  none")
+    for root in project_roots[:30]:
+        print(f"  {root.path}  marker={root.marker}")
+    if len(project_roots) > 30:
+        print(f"  ... {len(project_roots) - 30} more")
     print()
     print(render_decision_groups(groups))
     print()
@@ -77,6 +88,7 @@ def main() -> int:
         total_subgroups += len(subgroups)
         print(render_subgroups(group, subgroups, max_examples=2))
     print()
+    print(f"PROJECT_ROOTS      = {len(project_roots)}")
     print(f"RAW_APPROVAL_ITEMS = {cleanup.approval_items}")
     print(f"DECISION_GROUPS    = {len(groups)}")
     print(f"SEMANTIC_SUBGROUPS = {total_subgroups}")
@@ -85,7 +97,7 @@ def main() -> int:
     print(f"TRUNCATED          = {storage.truncated}")
     print("EXECUTED           = False")
     print("RESULT             = PREVIEW_ONLY")
-    print("MESSAGE            = Large groups are split by semantic file category and proposed action before approval.")
+    print("MESSAGE            = Files inside detected project roots are protected as a unit before any organization proposal.")
     return 0
 
 
