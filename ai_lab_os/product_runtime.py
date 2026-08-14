@@ -4,6 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
+from ai_lab_os.approval_boundary import ApprovalResult, ApprovalService
 from ai_lab_os.execution_history import JsonExecutionHistory
 from ai_lab_os.goal_lifecycle_service import GoalLifecycleResult, GoalLifecycleService
 from ai_lab_os.goal_query_service import GoalQueryService, GoalStatusSnapshot
@@ -53,6 +54,7 @@ class ProductRuntime:
         recovery_policy: SupervisorPolicy | None = None,
         recovery_config: RecoveryPolicyConfig | None = None,
         replan_handler: ReplanHandler | None = None,
+        approval_service: ApprovalService | None = None,
         min_score: int = 2,
         config: ProductRuntimeConfig | None = None,
     ) -> None:
@@ -76,6 +78,7 @@ class ProductRuntime:
         )
         self.query = GoalQueryService(goal_store)
         self.lifecycle = GoalLifecycleService(goal_store)
+        self.approvals = approval_service
         self._tick_number = 0
 
     def submit(self, request: GoalSubmissionRequest) -> GoalSubmissionResult:
@@ -98,6 +101,16 @@ class ProductRuntime:
 
     def resume(self, goal_id: str) -> GoalLifecycleResult:
         return self.lifecycle.resume(goal_id)
+
+    def approve(self, goal_id: str, task_id: str) -> ApprovalResult:
+        if self.approvals is None:
+            raise RuntimeError("approval service is not configured")
+        return self.approvals.approve(goal_id, task_id)
+
+    def reject_approval(self, goal_id: str, task_id: str) -> ApprovalResult:
+        if self.approvals is None:
+            raise RuntimeError("approval service is not configured")
+        return self.approvals.reject(goal_id, task_id)
 
     def tick(self) -> ProductRuntimeTick:
         self._tick_number += 1
