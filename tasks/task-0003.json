@@ -1,0 +1,13 @@
+{
+  "task_id": "task-0003-daemon-brain-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "tests": [
+    "python -m pytest C:\\AI-Lab\\ai-lab-os\\tests\\e2e_task_0003_target.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
