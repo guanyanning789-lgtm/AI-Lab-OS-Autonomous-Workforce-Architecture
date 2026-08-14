@@ -13,6 +13,8 @@ def test_load_task_accepts_safe_pytest(tmp_path):
                 "task_id": "task-0001",
                 "repository_path": r"C:\AI-Lab\brain",
                 "branch": "ai/v1.1-coding-agent",
+                "goal": "Fix the example implementation.",
+                "success_criteria": ["Configured pytest command passes."],
                 "tests": ["python -m pytest -q"],
                 "allow_cline_repair": True,
                 "allowed_files": ["app/example.py"],
@@ -25,6 +27,8 @@ def test_load_task_accepts_safe_pytest(tmp_path):
     task = load_task(path)
 
     assert task.task_id == "task-0001"
+    assert task.goal == "Fix the example implementation."
+    assert task.success_criteria == ("Configured pytest command passes.",)
     assert task.allow_cline_repair is True
     assert task.allowed_files == ("app/example.py",)
 
