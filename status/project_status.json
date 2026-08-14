@@ -1,8 +1,8 @@
 {
-  "milestone": "V0.2 Autonomous Local Worker",
-  "progress": "100% complete",
-  "current_work": "V0.2 final local verification passed on the real machine: Brain called Cline in a fresh isolated authenticated session, repaired the failing multiply implementation, changed the source, and final pytest verification passed in one attempt.",
-  "next_step": "Freeze V0.2 and begin the next milestone: Supervisor / multi-agent runtime orchestration on top of the autonomous local worker foundation.",
-  "finish_line": "PASSED. The real-machine E2E completed successfully with PHASE=complete, SUCCESS=True, ATTEMPTS=1, SOURCE CHANGED=True, and FINAL VERIFICATION=PASS.",
-  "user_action": "None. V0.2 is complete. Keep services running only if you want to continue into the next milestone."
+  "milestone": "V0.3 Supervisor Runtime",
+  "progress": "V0.3.1 Goal Contract implemented; CI verification pending",
+  "current_work": "The V0.3 supervisor branch now has a formal GoalContract with goal ID, natural-language goal, success criteria, constraints, priority, lifecycle status, metadata, strict validation, JSON persistence, and unit tests.",
+  "next_step": "Verify V0.3.1 in CI, then implement V0.3.2 Task Planner that converts one GoalContract into an explicit multi-step task plan without executing it yet.",
+  "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
+  "user_action": "None for V0.3.1 unless CI exposes an environment-specific failure."
 }
