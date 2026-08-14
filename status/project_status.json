@@ -1,16 +1,16 @@
 {
   "milestone": "V0.5 Skill System",
-  "percent": 84,
-  "progress": "V0.5.1 SkillContract PASS; V0.5.2 SkillRegistry PASS; V0.5.3 Skill -> TaskPlan Compiler PASS; V0.5.4 routing tie fix refined; V0.5.5 real natural-language Skill E2E runner committed",
+  "percent": 100,
+  "progress": "V0.5.1 SkillContract PASS; V0.5.2 SkillRegistry PASS; V0.5.3 Skill -> TaskPlan Compiler PASS; V0.5.4 Natural-Language Skill Routing PASS; V0.5.5 real natural-language Skill E2E reached GOAL_COMPLETE",
   "execution_name": "V0.5.5 Real Skill E2E",
-  "execution_percent": 72,
-  "execution_state": "RUNNING",
-  "execution_step": "Verify repaired V0.5.4 routing in CI, then run the local natural-language Skill graduation E2E",
-  "execution_detail": "The selector now resolves equal explicit-trigger counts by the earliest explicit intent position in the user's request while preserving fail-closed ambiguity when position and score also tie. The V0.5.5 runner accepts one natural-language request, selects a registered three-agent Skill, extracts its input, compiles it into TaskPlanContract, then executes Research via local SearXNG, Coding via the real local worker pytest path, and Computer via Brain /task/windows/e2e with approved=false and dry_run=true.",
-  "execution_result": "執行中...",
-  "execution_error": "Previous V0.5.4 CI exposed an explicit-trigger tie; refined fix committed and awaiting regression result.",
-  "current_work": "Finish V0.5.4 regression, then prove natural-language Skill -> multi-agent GOAL_COMPLETE locally.",
-  "next_step": "If current CI is green, pull ai/v0.5-skill-system and run scripts/manual_v055_real_skill_e2e.py against Brain :8000 and SearXNG :8888. Mark V0.5 DONE only after GOAL_COMPLETE.",
-  "finish_line": "V0.5 completes when a natural-language request selects a registered skill, binds inputs, compiles into a TaskPlanContract, and reaches GOAL_COMPLETE through the V0.4 multi-agent runtime.",
-  "user_action": "None until the current CI result is confirmed. Keep the V0.5 watcher open."
+  "execution_percent": 100,
+  "execution_state": "DONE",
+  "execution_step": "Natural-language Skill graduation verification complete",
+  "execution_detail": "A real local request selected the research-code-verify skill, extracted the topic input, compiled three tasks, then executed Research via local SearXNG, Coding via the real local worker pytest path, and Computer via Brain /task/windows/e2e with real Windows actions disabled. All three tasks completed in one Supervisor run and the event stream ended in GOAL_COMPLETE.",
+  "execution_result": "DONE - 可以下一步",
+  "execution_error": "",
+  "current_work": "V0.5 is complete and frozen.",
+  "next_step": "Begin V0.6 Persistent Goal / Memory so long-running goals and Skill execution state survive process restarts and can resume without losing progress.",
+  "finish_line": "V1.0 Personal Autonomous Workforce accepts natural-language goals, selects skills, plans and executes across agents/tools, persists state and memory, verifies outcomes, recovers from failures, and reports completion with minimal user intervention.",
+  "user_action": "None. V0.5 is complete. Switch the watcher when the V0.6 branch is created."
 }
