@@ -1,16 +1,16 @@
 {
   "milestone": "V0.7 Autonomous Recovery / Goal Continuation",
-  "percent": 12,
-  "progress": "V0.6 Persistent Goal / Memory frozen at 100%; V0.7.1 Durable Recovery Policy implementation and tests committed",
-  "execution_name": "V0.7.1 Durable Recovery Policy",
-  "execution_percent": 68,
+  "percent": 28,
+  "progress": "V0.7.1 Durable Recovery Policy PASS; V0.7.2 Recovery Runner implementation and tests committed",
+  "execution_name": "V0.7.2 Recovery Runner",
+  "execution_percent": 70,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for deterministic durable recovery decisions",
-  "execution_detail": "RecoveryPolicy now inspects PersistentGoalState without executing anything. It maps complete goals to NONE, unfinished durable goals to RESUME, failed tasks through RETRY -> REPAIR -> REPLAN budgets, explicit replan_required to REPLAN, and blocked/invalid-cursor/cycle-budget states to fail-closed ESCALATE. The decision contract includes goal_id, action, task_id, reason, attempts, and safe_to_continue so later autonomous recovery runners or stronger supervisors can consume it without changing persistence formats.",
+  "execution_step": "Run full regression CI for automatic persisted-goal recovery execution",
+  "execution_detail": "RecoveryRunner now loads persisted goals, asks RecoveryPolicy for the bounded next action, and automatically executes NONE / RESUME / RETRY / REPAIR through the existing restart-safe Supervisor path. REPLAN remains fail-closed unless an explicit replan_handler is supplied, and ESCALATE never executes. recover_all scans the durable Goal Store in stable order so complete goals are skipped while resumable goals continue without manual resume commands.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.7.1 recovery policy against the complete V0.1-V0.6 regression suite.",
-  "next_step": "If CI is green, mark V0.7.1 DONE and begin V0.7.2 Recovery Runner that automatically consumes a durable decision and invokes resume/retry/repair/replan safely.",
+  "current_work": "Verify V0.7.2 automatic recovery against the complete regression suite.",
+  "next_step": "If CI is green, mark V0.7.2 DONE and begin V0.7.3 Autonomous Replan so REPLAN_REQUIRED can produce a validated replacement plan instead of stopping for manual intervention.",
   "finish_line": "V0.7 completes when interrupted or failed persisted goals are discovered automatically, assigned a bounded recovery action, re-enter the Supervisor/Agent runtime without manual resume commands, and continue safely toward GOAL_COMPLETE or explicit escalation.",
-  "user_action": "None. Switch the watcher to ai/v0.7-autonomous-recovery when convenient."
+  "user_action": "None. Keep the V0.7 watcher open."
 }
