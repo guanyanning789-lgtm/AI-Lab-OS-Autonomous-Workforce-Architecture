@@ -16,11 +16,47 @@ _PROJECT_ROOT_MARKERS = (
     "setup.py",
 )
 
+# A project can be real even when it has no Git/config marker at its root.
+# Require several project-shaped child directories so ordinary folders such as
+# Desktop/Downloads are not promoted to project roots accidentally.
+_COMPOSITE_PROJECT_DIRS = {
+    "src",
+    "tests",
+    "scripts",
+    "dataset",
+    "datasets",
+    "workflows",
+    "output",
+    "outputs",
+    "models",
+    "checkpoints",
+    "configs",
+    "config",
+    "prompts",
+    "toolkit",
+    "tools",
+    "app",
+    "apps",
+    "shot_factory",
+}
+_COMPOSITE_MIN_MATCHES = 3
+
 
 @dataclass(frozen=True)
 class ProjectRoot:
     path: str
     marker: str
+
+
+def _composite_marker(directory: Path) -> str | None:
+    try:
+        child_dirs = {child.name.lower() for child in directory.iterdir() if child.is_dir()}
+    except OSError:
+        return None
+    matches = sorted(child_dirs & _COMPOSITE_PROJECT_DIRS)
+    if len(matches) < _COMPOSITE_MIN_MATCHES:
+        return None
+    return "composite:" + ",".join(matches)
 
 
 def detect_project_roots(candidates: tuple[FileCandidate, ...]) -> tuple[ProjectRoot, ...]:
@@ -31,14 +67,22 @@ def detect_project_roots(candidates: tuple[FileCandidate, ...]) -> tuple[Project
         for ancestor in (parent, *parent.parents):
             directories.add(ancestor)
 
-    roots: list[ProjectRoot] = []
+    discovered: list[ProjectRoot] = []
     for directory in sorted(directories, key=lambda p: len(p.parts)):
         marker = next((name for name in _PROJECT_ROOT_MARKERS if (directory / name).exists()), None)
+        marker = marker or _composite_marker(directory)
         if marker is None:
             continue
-        if any(directory == Path(root.path) or Path(root.path) in directory.parents for root in roots):
+        discovered.append(ProjectRoot(str(directory), marker))
+
+    # Prefer the highest meaningful root. Once a parent project is detected,
+    # nested tool repos/environments are already protected by that parent.
+    roots: list[ProjectRoot] = []
+    for candidate in sorted(discovered, key=lambda root: len(Path(root.path).parts)):
+        directory = Path(candidate.path)
+        if any(Path(existing.path) in directory.parents or directory == Path(existing.path) for existing in roots):
             continue
-        roots.append(ProjectRoot(str(directory), marker))
+        roots.append(candidate)
     return tuple(roots)
 
 
