@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 52,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter + tests committed",
+  "percent": 58,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); local Windows E2E pending",
   "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 60,
+  "execution_percent": 80,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for ComputerExecutor transport adapter",
-  "execution_detail": "Computer tasks now map into a configurable local Windows backend contract. Safe defaults are approved=false and dry_run=true; explicit real execution uses approved=true and dry_run=false. Tests cover safe defaults, explicit real mode, backend failure, backend exception, and fail-closed non-computer routing.",
+  "execution_step": "Discover the real local Windows action endpoint before physical-desktop E2E",
+  "execution_detail": "GitHub CI passed 71 tests. A probe script now reads the local Brain/OpenAPI schema and lists action/screen/computer/windows/input routes, so the real E2E uses the actual endpoint instead of a guessed transport path.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify the ComputerExecutor adapter without pretending CI can operate the user's physical desktop.",
-  "next_step": "If CI is green, prepare one local Windows E2E command against the real host backend. Mark V0.4.3 DONE only after that local execution passes.",
+  "current_work": "Waiting for one local endpoint-discovery result from the user's Windows host.",
+  "next_step": "Run scripts/probe_computer_backend.py locally. Use the discovered real endpoint to wire the final Computer backend smoke test, then execute one harmless real Windows action and verify it before marking V0.4.3 DONE.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "None yet. Keep the V0.4 execution monitor open."
+  "user_action": "Pull the V0.4 branch and run: python .\\scripts\\probe_computer_backend.py --base-url http://127.0.0.1:8000 . Send me the output."
 }
