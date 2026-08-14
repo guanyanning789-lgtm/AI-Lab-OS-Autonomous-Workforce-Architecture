@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from ai_lab_os.task_planner import TaskPlanContract
+
+if TYPE_CHECKING:
+    from ai_lab_os.persistent_goal_store import PersistentGoalState
 
 
 class TaskLifecycleStatus(str, Enum):
@@ -76,6 +80,37 @@ class PlanRuntimeState:
             plan=plan,
             tasks={task.task_id: TaskRuntimeState(task_id=task.task_id) for task in plan.tasks},
         )
+        runtime.refresh_ready_tasks()
+        return runtime
+
+    @classmethod
+    def from_persistent_goal(cls, plan: TaskPlanContract, persisted: "PersistentGoalState") -> "PlanRuntimeState":
+        if persisted.goal_id != plan.goal_id:
+            raise ValueError("persisted goal_id does not match plan goal_id")
+        persisted_by_id = {item.task_id: item for item in persisted.tasks}
+        expected_ids = {task.task_id for task in plan.tasks}
+        if set(persisted_by_id) != expected_ids:
+            raise ValueError("persisted task ids do not match plan task ids")
+
+        tasks: dict[str, TaskRuntimeState] = {}
+        for task in plan.tasks:
+            item = persisted_by_id[task.task_id]
+            status = TaskLifecycleStatus(item.status)
+            # A process may die after persisting RUNNING. On restart that work is
+            # not assumed complete; make it READY so it can be safely attempted again.
+            if status in {TaskLifecycleStatus.RUNNING, TaskLifecycleStatus.VERIFYING}:
+                status = TaskLifecycleStatus.READY
+            elif status in {TaskLifecycleStatus.FAILED, TaskLifecycleStatus.RETRY, TaskLifecycleStatus.REPAIR}:
+                status = TaskLifecycleStatus.READY
+            tasks[task.task_id] = TaskRuntimeState(
+                task_id=task.task_id,
+                status=status,
+                attempts=item.attempts,
+                last_error=item.message or None,
+                history=[status],
+            )
+
+        runtime = cls(plan=plan, tasks=tasks)
         runtime.refresh_ready_tasks()
         return runtime
 
