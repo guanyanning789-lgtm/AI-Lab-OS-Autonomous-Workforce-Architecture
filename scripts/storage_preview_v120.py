@@ -16,6 +16,7 @@ from ai_lab_os.storage_curator import StoragePlan, build_storage_plan
 from ai_lab_os.storage_decision_groups import build_decision_groups, render_decision_groups
 from ai_lab_os.storage_group_detail import render_group_details
 from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
+from ai_lab_os.storage_migration_blueprint import build_migration_blueprint, render_migration_blueprint
 from ai_lab_os.storage_path_planner import build_migration_plan
 from ai_lab_os.storage_project_roots import apply_project_root_protection, detect_project_roots
 from ai_lab_os.storage_subgroups import build_subgroups, render_subgroups
@@ -35,24 +36,19 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.7 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.8 canonical migration preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
-    parser.add_argument("--max-items", type=int, default=15)
-    parser.add_argument("--group-examples", type=int, default=3)
+    parser.add_argument("--max-items", type=int, default=12)
+    parser.add_argument("--blueprint-items", type=int, default=30)
     args = parser.parse_args()
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.7 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.8 CANONICAL MIGRATION PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
-    print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = project protection + grouped decisions + canonical folder architecture")
-    print("ROOTS:")
-    for root in roots:
-        print(f"  {root}")
-    print()
+    print("SAFETY = blueprint only; no file changes are executed")
     if not roots:
         print("RESULT = FAILED")
         return 1
@@ -67,40 +63,25 @@ def main() -> int:
     guards = guard_plan(proposals)
     cleanup = build_cleanup_plan(storage, guards)
     groups = build_decision_groups(cleanup, families)
+    blueprint = build_migration_blueprint(cleanup.items)
 
     print(render_architecture())
     print()
-    print(render_cleanup_plan(cleanup, max_items=max(1, args.max_items)))
-    print()
-    print("DETECTED PROJECT ROOTS:")
-    if not project_roots:
-        print("  none")
-    for root in project_roots[:30]:
-        print(f"  {root.path}  marker={root.marker}")
-    if len(project_roots) > 30:
-        print(f"  ... {len(project_roots) - 30} more")
+    print(render_migration_blueprint(blueprint, max_items=max(1, args.blueprint_items)))
     print()
     print(render_decision_groups(groups))
     print()
-    print(render_group_details(groups, cleanup, max_examples=max(1, args.group_examples)))
-    print()
-    total_subgroups = 0
-    print("SEMANTIC SUBGROUPS:")
-    for group in groups:
-        subgroups = build_subgroups(group, cleanup.items)
-        total_subgroups += len(subgroups)
-        print(render_subgroups(group, subgroups, max_examples=2))
-    print()
-    print(f"PROJECT_ROOTS      = {len(project_roots)}")
-    print(f"RAW_APPROVAL_ITEMS = {cleanup.approval_items}")
-    print(f"DECISION_GROUPS    = {len(groups)}")
-    print(f"SEMANTIC_SUBGROUPS = {total_subgroups}")
-    print(f"VERSION_FAMILIES   = {len(families)}")
-    print(f"SCANNED_FILES      = {storage.scanned_files}")
-    print(f"TRUNCATED          = {storage.truncated}")
-    print("EXECUTED           = False")
-    print("RESULT             = PREVIEW_ONLY")
-    print("MESSAGE            = Canonical folder architecture is defined for long-term clean storage; no files were changed.")
+    total_subgroups = sum(len(build_subgroups(group, cleanup.items)) for group in groups)
+    print(f"PROJECT_ROOTS             = {len(project_roots)}")
+    print(f"RAW_APPROVAL_ITEMS        = {cleanup.approval_items}")
+    print(f"MIGRATION_BLUEPRINT_ITEMS = {len(blueprint)}")
+    print(f"DECISION_GROUPS           = {len(groups)}")
+    print(f"SEMANTIC_SUBGROUPS        = {total_subgroups}")
+    print(f"SCANNED_FILES             = {storage.scanned_files}")
+    print(f"TRUNCATED                 = {storage.truncated}")
+    print("EXECUTED                  = False")
+    print("RESULT                    = PREVIEW_ONLY")
+    print("MESSAGE                   = Canonical source-to-destination blueprint generated; explicit approval is still required before any real move.")
     return 0
 
 
