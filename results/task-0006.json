@@ -1,0 +1,16 @@
+{
+  "task_id": "task-0006-sandboxed-autonomous-brain-repair",
+  "status": "failed",
+  "tests_passed": false,
+  "attempts_used": 2,
+  "changed_files": [],
+  "stdout": "F                                                                        [100%]\n================================== FAILURES ===================================\n________________ test_geometric_mean_is_available_and_correct _________________\n\n    def test_geometric_mean_is_available_and_correct():\n        module = _load_target_module()\n>       assert hasattr(module, \"geometric_mean\")\nE       AssertionError: assert False\nE        +  where False = hasattr(<module 'worker_v01_math_ops_task6' from 'C:\\\\AI-Lab\\\\worker-v01-smoke\\\\math_ops.py'>, 'geometric_mean')\n\n..\\ai-lab-os\\tests\\e2e_task_0006_target.py:26: AssertionError\n=========================== short test summary info ===========================\nFAILED ..\\ai-lab-os\\tests\\e2e_task_0006_target.py::test_geometric_mean_is_available_and_correct\n1 failed in 0.05s\n",
+  "stderr": "",
+  "error": "Brain repair failed",
+  "brain_phase": "failed",
+  "brain_success": false,
+  "brain_message": "Unauthorized sandbox changes were discarded: README.md, enhanced_auth.py, sorting_algorithms.py, test_enhanced_auth.py, test_sorting_algorithms.py",
+  "brain_verification_errors": [
+    "UNAUTHORIZED_FILE_CHANGE: README.md, enhanced_auth.py, sorting_algorithms.py, test_enhanced_auth.py, test_sorting_algorithms.py"
+  ]
+}
