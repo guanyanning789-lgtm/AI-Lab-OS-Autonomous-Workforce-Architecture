@@ -1,0 +1,20 @@
+{
+  "task_id": "task-0006-sandboxed-autonomous-brain-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "goal": "Implement geometric_mean(values) in math_ops.py. It should return the geometric mean of the numeric values.",
+  "success_criteria": [
+    "math_ops.py defines geometric_mean(values)",
+    "geometric_mean([1, 4, 16]) returns 4",
+    "the specified pytest verification passes",
+    "only math_ops.py may be modified in the real repository"
+  ],
+  "tests": [
+    "python -m pytest C:\\AI-Lab\\ai-lab-os\\tests\\e2e_task_0006_target.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
