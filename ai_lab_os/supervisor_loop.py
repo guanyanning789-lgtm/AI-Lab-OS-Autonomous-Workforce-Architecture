@@ -120,7 +120,7 @@ def _persist_runtime(
             cycles=cycles,
             events=tuple(events),
             created_at=created_at,
-            schema_version="0.6.2",
+            schema_version="0.6.3",
         )
     )
 
@@ -131,13 +131,20 @@ def run_supervisor_loop(
     *,
     policy: SupervisorPolicy | None = None,
     goal_store: JsonGoalStore | None = None,
+    resume_state: PersistentGoalState | None = None,
 ) -> SupervisorRunResult:
-    """Drive one task plan until complete/replan while optionally persisting every transition."""
+    """Drive or resume one task plan while optionally persisting every transition."""
 
     policy = policy or SupervisorPolicy()
-    runtime = PlanRuntimeState.from_plan(plan)
-    events: list[str] = []
-    cycles = 0
+    if resume_state is not None:
+        runtime = PlanRuntimeState.from_persistent_goal(plan, resume_state)
+        events = list(resume_state.events)
+        cycles = resume_state.cycles
+        events.append(f"RESUME:{resume_state.resume_cursor or 'complete'}")
+    else:
+        runtime = PlanRuntimeState.from_plan(plan)
+        events: list[str] = []
+        cycles = 0
     _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
     while cycles < policy.max_cycles:
@@ -282,4 +289,24 @@ def run_supervisor_loop(
         ),
         message="Supervisor stopped after reaching max_cycles.",
         events=events,
+    )
+
+
+def resume_supervisor_from_store(
+    goal_id: str,
+    executor: TaskExecutor,
+    goal_store: JsonGoalStore,
+    *,
+    policy: SupervisorPolicy | None = None,
+) -> SupervisorRunResult:
+    """Reload a persisted goal after process restart and continue unfinished work."""
+
+    persisted = goal_store.load(goal_id)
+    plan = TaskPlanContract.from_dict(persisted.plan)
+    return run_supervisor_loop(
+        plan,
+        executor,
+        policy=policy,
+        goal_store=goal_store,
+        resume_state=persisted,
     )
