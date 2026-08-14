@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import shutil
 import subprocess
 import sys
@@ -47,28 +48,39 @@ def _run_tests(task: WorkerTask, repository: Path) -> tuple[bool, str, str]:
     stderr_parts: list[str] = []
     for command in task.tests:
         completed = _run(_safe_pytest_argv(command), cwd=repository)
-        stdout_parts.append(completed.stdout)
-        stderr_parts.append(completed.stderr)
+        stdout_parts.append(completed.stdout or "")
+        stderr_parts.append(completed.stderr or "")
         if completed.returncode != 0:
             return False, "\n".join(stdout_parts), "\n".join(stderr_parts)
     return True, "\n".join(stdout_parts), "\n".join(stderr_parts)
 
 
-def _changed_files(repository: Path) -> list[str]:
-    completed = _run(["git", "status", "--porcelain"], cwd=repository)
-    if completed.returncode != 0:
-        return []
+def _file_digest(path: Path) -> str | None:
+    if not path.exists() or not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
+
+def _snapshot_allowed_files(repository: Path, allowed_files: tuple[str, ...]) -> dict[str, str | None]:
+    return {
+        relative.replace("\\", "/"): _file_digest(repository / relative)
+        for relative in allowed_files
+    }
+
+
+def _changed_allowed_files(
+    repository: Path,
+    before: dict[str, str | None],
+) -> list[str]:
     changed: list[str] = []
-    for line in completed.stdout.splitlines():
-        if len(line) < 4:
-            continue
-        path = line[3:].strip().replace("\\", "/")
-        parts = Path(path).parts
-        if any(part in RUNTIME_ARTIFACT_DIRS for part in parts):
-            continue
-        changed.append(path)
-    return changed
+    for relative, previous_digest in before.items():
+        if _file_digest(repository / relative) != previous_digest:
+            changed.append(relative)
+    return sorted(changed)
 
 
 def _repair_prompt(task: WorkerTask, stdout: str, stderr: str) -> str:
@@ -87,6 +99,21 @@ def _repair_prompt(task: WorkerTask, stdout: str, stderr: str) -> str:
     )
 
 
+def _brain_fields(response: dict | None) -> tuple[str | None, bool | None, str | None, list[str]]:
+    if not isinstance(response, dict):
+        return None, None, None, []
+    phase = response.get("phase")
+    success = response.get("success")
+    message = response.get("message")
+    verification_errors = response.get("verification_errors", [])
+    return (
+        str(phase) if phase is not None else None,
+        bool(success) if success is not None else None,
+        str(message) if message is not None else None,
+        [str(item) for item in verification_errors] if isinstance(verification_errors, list) else [],
+    )
+
+
 def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerResult:
     task.validate()
     repository = Path(task.repository_path).resolve()
@@ -99,7 +126,7 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
         )
 
     branch_check = _run(["git", "branch", "--show-current"], cwd=repository)
-    current_branch = branch_check.stdout.strip()
+    current_branch = (branch_check.stdout or "").strip()
     if branch_check.returncode != 0 or current_branch != task.branch:
         return WorkerResult(
             task_id=task.task_id,
@@ -108,8 +135,13 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
             error=f"expected branch {task.branch!r}, found {current_branch!r}",
         )
 
+    allowed_before = _snapshot_allowed_files(repository, task.allowed_files)
     passed, stdout, stderr = _run_tests(task, repository)
     attempts = 1
+    brain_phase: str | None = None
+    brain_success: bool | None = None
+    brain_message: str | None = None
+    brain_verification_errors: list[str] = []
 
     if not passed and task.allow_cline_repair:
         if not task.allowed_files:
@@ -123,7 +155,7 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
                 error="allowed_files required when Cline repair is enabled",
             )
         client = brain or BrainClient()
-        client.repair(
+        response = client.repair(
             BrainRepairRequest(
                 task=_repair_prompt(task, stdout, stderr),
                 repository_path=str(repository),
@@ -133,6 +165,24 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
             )
         )
         attempts += 1
+        brain_phase, brain_success, brain_message, brain_verification_errors = _brain_fields(response)
+
+        if brain_success is False:
+            return WorkerResult(
+                task_id=task.task_id,
+                status="failed",
+                tests_passed=False,
+                attempts_used=attempts,
+                changed_files=_changed_allowed_files(repository, allowed_before),
+                stdout=stdout,
+                stderr=stderr,
+                error="Brain repair failed",
+                brain_phase=brain_phase,
+                brain_success=brain_success,
+                brain_message=brain_message,
+                brain_verification_errors=brain_verification_errors,
+            )
+
         passed, stdout, stderr = _run_tests(task, repository)
 
     return WorkerResult(
@@ -140,10 +190,14 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
         status="complete" if passed else "failed",
         tests_passed=passed,
         attempts_used=attempts,
-        changed_files=_changed_files(repository),
+        changed_files=_changed_allowed_files(repository, allowed_before),
         stdout=stdout,
         stderr=stderr,
         error=None if passed else "verification failed",
+        brain_phase=brain_phase,
+        brain_success=brain_success,
+        brain_message=brain_message,
+        brain_verification_errors=brain_verification_errors,
     )
 
 
@@ -166,6 +220,10 @@ def main() -> int:
     print(f"TESTS PASSED = {result.tests_passed}")
     print(f"ATTEMPTS = {result.attempts_used}")
     print(f"CHANGED FILES = {', '.join(result.changed_files)}")
+    if result.brain_phase:
+        print(f"BRAIN PHASE = {result.brain_phase}")
+    if result.brain_message:
+        print(f"BRAIN MESSAGE = {result.brain_message}")
     if result.error:
         print(f"ERROR = {result.error}")
 
