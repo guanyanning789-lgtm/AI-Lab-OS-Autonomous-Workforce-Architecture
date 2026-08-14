@@ -10,7 +10,7 @@ from pathlib import Path
 
 DEFAULT_BRANCH = "ai/v0.3-supervisor-runtime"
 STATUS_PATH = "status/project_status.json"
-BAR_WIDTH = 34
+BAR_WIDTH = 46
 ANIMATION_FRAMES = ("▏", "▎", "▍", "▌", "▋", "▊", "▉", "█", "▉", "▊", "▋", "▌", "▍", "▎")
 
 
@@ -40,8 +40,7 @@ def _fetch_status(repository: Path, branch: str) -> dict[str, object]:
     return payload
 
 
-def _percent(payload: dict[str, object]) -> int:
-    raw = payload.get("percent", 0)
+def _clamped_int(raw: object) -> int:
     try:
         value = int(raw)
     except (TypeError, ValueError):
@@ -49,41 +48,76 @@ def _percent(payload: dict[str, object]) -> int:
     return max(0, min(100, value))
 
 
-def _progress_bar(percent: int, frame_index: int) -> str:
+def _progress_bar(percent: int, frame_index: int, *, animate: bool) -> str:
     filled = int(BAR_WIDTH * percent / 100)
     empty = BAR_WIDTH - filled
-    base = "█" * filled + "·" * empty
+    chars = list("█" * filled + "·" * empty)
 
-    if 0 < percent < 100 and filled < BAR_WIDTH:
+    if animate and percent < 100 and BAR_WIDTH > 0:
         cursor = min(BAR_WIDTH - 1, filled)
-        chars = list(base)
         chars[cursor] = ANIMATION_FRAMES[frame_index % len(ANIMATION_FRAMES)]
-        base = "".join(chars)
 
-    return f"[{base}] {percent:3d}%"
+    return f"[{''.join(chars)}] {percent:3d}%"
+
+
+def _state_label(payload: dict[str, object]) -> str:
+    state = str(payload.get("execution_state", "IDLE")).strip().upper()
+    if state not in {"IDLE", "RUNNING", "DONE", "FAILED"}:
+        return "UNKNOWN"
+    return state
+
+
+def _result_text(payload: dict[str, object], state: str) -> str:
+    explicit = str(payload.get("execution_result", "")).strip()
+    if explicit:
+        return explicit
+    if state == "DONE":
+        return "DONE - 可以下一步"
+    if state == "FAILED":
+        return "FAILED - 查看 ERROR"
+    if state == "RUNNING":
+        return "執行中..."
+    return "等待執行"
 
 
 def _screen(payload: dict[str, object], frame_index: int, branch: str, seconds_until_sync: float) -> str:
-    percent = _percent(payload)
+    project_percent = _clamped_int(payload.get("percent", 0))
+    execution_percent = _clamped_int(payload.get("execution_percent", 0))
+    state = _state_label(payload)
+    animate = state == "RUNNING"
+
     lines = [
-        "=" * 78,
-        "                         AI LAB OS LIVE PROGRESS",
-        "=" * 78,
-        f"BRANCH      = {branch}",
-        f"MILESTONE   = {payload.get('milestone', 'unknown')}",
+        "=" * 86,
+        "                           AI LAB OS EXECUTION MONITOR",
+        "=" * 86,
+        f"BRANCH          = {branch}",
+        f"MILESTONE       = {payload.get('milestone', 'unknown')}",
+        f"PROJECT         = {project_percent}% overall",
         "",
-        f"PROGRESS    {_progress_bar(percent, frame_index)}",
-        f"STATUS      = {payload.get('progress', 'unknown')}",
+        f"COMMAND         = {payload.get('execution_name', 'No active command')}",
+        f"EXECUTION       {_progress_bar(execution_percent, frame_index, animate=animate)}",
+        f"STATE           = {state}",
         "",
-        f"NOW         = {payload.get('current_work', 'not specified')}",
+        f"CURRENT STEP    = {payload.get('execution_step', 'Waiting')}",
+        f"DETAIL          = {payload.get('execution_detail', '')}",
         "",
-        f"NEXT        = {payload.get('next_step', 'not specified')}",
-        "",
-        f"USER ACTION = {payload.get('user_action', 'None')}",
-        "",
-        f"REMOTE SYNC = {max(0.0, seconds_until_sync):4.1f}s   |   Ctrl+C to stop",
-        "=" * 78,
+        f"RESULT          = {_result_text(payload, state)}",
     ]
+
+    error = str(payload.get("execution_error", "")).strip()
+    if error:
+        lines.append(f"ERROR           = {error}")
+
+    lines.extend(
+        [
+            "",
+            f"NEXT            = {payload.get('next_step', 'not specified')}",
+            f"USER ACTION     = {payload.get('user_action', 'None')}",
+            "",
+            f"REMOTE SYNC     = {max(0.0, seconds_until_sync):4.1f}s   |   Ctrl+C to stop",
+            "=" * 86,
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -100,9 +134,14 @@ def watch(repository: Path, branch: str, poll_seconds: float) -> None:
 
     payload: dict[str, object] = {
         "milestone": "Connecting to GitHub...",
-        "progress": "Waiting for first remote sync",
         "percent": 0,
-        "current_work": "Fetching project status",
+        "execution_name": "Connecting",
+        "execution_percent": 0,
+        "execution_state": "RUNNING",
+        "execution_step": "Fetching remote execution status",
+        "execution_detail": "",
+        "execution_result": "",
+        "execution_error": "",
         "next_step": "Remote status will appear automatically",
         "user_action": "None",
     }
@@ -122,8 +161,9 @@ def watch(repository: Path, branch: str, poll_seconds: float) -> None:
 
         shown = dict(payload)
         if last_error:
-            shown["current_work"] = f"Remote sync error: {last_error}"
-            shown["user_action"] = "Watcher will retry automatically"
+            shown["execution_state"] = "FAILED"
+            shown["execution_error"] = f"Remote sync error: {last_error}"
+            shown["execution_result"] = "FAILED - watcher will retry automatically"
 
         elapsed = time.monotonic() - last_sync
         remaining = poll_seconds - elapsed
@@ -134,7 +174,7 @@ def watch(repository: Path, branch: str, poll_seconds: float) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Animated read-only AI Lab OS remote development progress watcher")
+    parser = argparse.ArgumentParser(description="Live per-execution AI Lab OS progress monitor")
     parser.add_argument("--repo", default=".", help="local clone of the AI Lab OS repository")
     parser.add_argument("--branch", default=DEFAULT_BRANCH)
     parser.add_argument("--poll-seconds", type=float, default=10.0)
