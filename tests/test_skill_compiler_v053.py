@@ -44,6 +44,7 @@ def _skill() -> SkillContract:
                 depends_on=("code",),
                 metadata_templates={
                     "action": "click",
+                    "args_json": "{}",
                     "window_title": "{window_title}",
                 },
             ),
@@ -80,6 +81,11 @@ def test_compile_skill_plan_carries_skill_permissions_and_identity() -> None:
     assert task.metadata["skill_id"] == "research-implement-verify"
     assert task.metadata["skill_version"] == "0.5.1"
     assert task.metadata["skill_permissions"] == "web.search,code.verify,computer.mock"
+
+
+def test_compile_skill_plan_preserves_literal_json_metadata() -> None:
+    task = compile_skill_plan(_skill(), {"topic": "pytest"}, goal_id="goal-001").plan.tasks[2]
+    assert task.metadata["args_json"] == "{}"
 
 
 def test_compile_skill_plan_rejects_missing_inputs() -> None:
