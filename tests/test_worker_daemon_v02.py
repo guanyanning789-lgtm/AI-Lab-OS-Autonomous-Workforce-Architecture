@@ -4,8 +4,15 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 import ai_lab_os.worker_daemon as daemon_module
-from ai_lab_os.worker_daemon import DaemonConfig, discover_pending_tasks, process_once
+from ai_lab_os.worker_daemon import (
+    DaemonConfig,
+    WorkerCodeUpdated,
+    discover_pending_tasks,
+    process_once,
+)
 from ai_lab_os.worker_protocol import WorkerResult
 
 
@@ -93,3 +100,11 @@ def test_process_once_publishes_when_enabled(monkeypatch, tmp_path):
 
     assert processed == ["three"]
     assert published == [(repo / "results" / "task-0003.json").resolve()]
+
+
+def test_process_once_requests_restart_when_pull_changes_head(monkeypatch, tmp_path):
+    repo = _init_repo(tmp_path)
+    monkeypatch.setattr(daemon_module, "_safe_pull", lambda repository: True)
+
+    with pytest.raises(WorkerCodeUpdated, match="updated"):
+        process_once(DaemonConfig(repository_path=str(repo), pull_before_scan=True))
