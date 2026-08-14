@@ -1,0 +1,22 @@
+{
+  "task_id": "task-0004-evidence-rich-brain-repair",
+  "status": "failed",
+  "tests_passed": false,
+  "attempts_used": 2,
+  "changed_files": [
+    "math_ops.py",
+    "test_math_ops.py",
+    "README.md",
+    "app.py",
+    "data_processor.py",
+    "demo_auth.py",
+    "requirements.txt",
+    "sample_data.csv",
+    "sample_demo.csv",
+    "simple_data_processor.py",
+    "test_auth.py"
+  ],
+  "stdout": "F                                                                        [100%]\n================================== FAILURES ===================================\n_________________ test_multiply_four_is_available_and_correct _________________\n\n    def test_multiply_four_is_available_and_correct():\n        module = _load_target_module()\n>       assert hasattr(module, \"multiply_four\")\nE       AssertionError: assert False\nE        +  where False = hasattr(<module 'worker_v01_math_ops_task4' from 'C:\\\\AI-Lab\\\\worker-v01-smoke\\\\math_ops.py'>, 'multiply_four')\n\n..\\ai-lab-os\\tests\\e2e_task_0004_target.py:19: AssertionError\n=========================== short test summary info ===========================\nFAILED ..\\ai-lab-os\\tests\\e2e_task_0004_target.py::test_multiply_four_is_available_and_correct\n1 failed in 0.03s\n",
+  "stderr": "",
+  "error": "verification failed"
+}
