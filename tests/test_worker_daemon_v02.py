@@ -41,9 +41,7 @@ def test_discover_pending_tasks_skips_existing_results(tmp_path):
     second = _write_task(repo, "task-0002", "two")
     (repo / "results" / "task-0001.json").write_text("{}", encoding="utf-8")
 
-    pending = discover_pending_tasks(
-        DaemonConfig(repository_path=str(repo), pull_before_scan=False)
-    )
+    pending = discover_pending_tasks(DaemonConfig(repository_path=str(repo), pull_before_scan=False))
 
     assert pending == [second]
     assert first not in pending
@@ -54,23 +52,16 @@ def test_process_once_runs_pending_task_and_writes_result(monkeypatch, tmp_path)
     _write_task(repo, "task-0002", "two")
     calls = []
 
-    def fake_run_task(task):
+    def fake_run_task(task, *, progress=None):
         calls.append(task.task_id)
-        return WorkerResult(
-            task_id=task.task_id,
-            status="complete",
-            tests_passed=True,
-            attempts_used=1,
-        )
+        if progress:
+            progress("VERIFYING_INITIAL")
+        return WorkerResult(task_id=task.task_id, status="complete", tests_passed=True, attempts_used=1)
 
     monkeypatch.setattr(daemon_module, "run_task", fake_run_task)
 
     processed = process_once(
-        DaemonConfig(
-            repository_path=str(repo),
-            pull_before_scan=False,
-            publish_results=False,
-        )
+        DaemonConfig(repository_path=str(repo), pull_before_scan=False, publish_results=False)
     )
 
     assert processed == ["two"]
@@ -88,7 +79,7 @@ def test_process_once_publishes_when_enabled(monkeypatch, tmp_path):
     monkeypatch.setattr(
         daemon_module,
         "run_task",
-        lambda task: WorkerResult(task_id=task.task_id, status="complete", tests_passed=True),
+        lambda task, progress=None: WorkerResult(task_id=task.task_id, status="complete", tests_passed=True),
     )
     monkeypatch.setattr(
         daemon_module,
@@ -97,11 +88,7 @@ def test_process_once_publishes_when_enabled(monkeypatch, tmp_path):
     )
 
     processed = process_once(
-        DaemonConfig(
-            repository_path=str(repo),
-            pull_before_scan=False,
-            publish_results=True,
-        )
+        DaemonConfig(repository_path=str(repo), pull_before_scan=False, publish_results=True)
     )
 
     assert processed == ["three"]
