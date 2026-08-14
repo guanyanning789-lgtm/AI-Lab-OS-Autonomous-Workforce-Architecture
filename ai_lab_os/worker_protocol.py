@@ -41,6 +41,10 @@ class WorkerResult:
     stdout: str = ""
     stderr: str = ""
     error: str | None = None
+    brain_phase: str | None = None
+    brain_success: bool | None = None
+    brain_message: str | None = None
+    brain_verification_errors: list[str] = field(default_factory=list)
 
 
 def load_task(path: str | Path) -> WorkerTask:
