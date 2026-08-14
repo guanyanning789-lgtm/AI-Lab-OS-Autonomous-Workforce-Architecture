@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -12,7 +11,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from ai_lab_os.storage_cleanup_plan import CleanupAction, CleanupItem
 from ai_lab_os.storage_executor import StorageApproval, execute_cleanup_item
-from ai_lab_os.storage_rollback import StorageTransaction, rollback_transaction
+from ai_lab_os.storage_rollback import create_transaction, rollback_transaction
 from ai_lab_os.storage_verifier import verify_execution
 
 
@@ -81,12 +80,11 @@ def main() -> int:
             print("ERROR  = post-action verification failed")
             return 1
 
-        transaction = StorageTransaction(
+        transaction = create_transaction(
             transaction_id="v118-e2e",
             action=CleanupAction.CLEAN,
-            original_path=str(source),
-            current_path=str(executed.quarantine_path),
-            sha256=expected_hash,
+            source=source,
+            destination=Path(executed.quarantine_path),
         )
         rolled_back = rollback_transaction(transaction)
         print(f"ROLLBACK = {rolled_back.ok}")
