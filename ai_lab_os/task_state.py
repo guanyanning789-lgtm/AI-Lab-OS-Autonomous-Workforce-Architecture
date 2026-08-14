@@ -15,6 +15,7 @@ class TaskLifecycleStatus(str, Enum):
     READY = "ready"
     RUNNING = "running"
     VERIFYING = "verifying"
+    AWAITING_APPROVAL = "awaiting_approval"
     COMPLETE = "complete"
     FAILED = "failed"
     RETRY = "retry"
@@ -27,12 +28,14 @@ _ALLOWED_TRANSITIONS: dict[TaskLifecycleStatus, set[TaskLifecycleStatus]] = {
     TaskLifecycleStatus.READY: {TaskLifecycleStatus.RUNNING},
     TaskLifecycleStatus.RUNNING: {
         TaskLifecycleStatus.VERIFYING,
+        TaskLifecycleStatus.AWAITING_APPROVAL,
         TaskLifecycleStatus.FAILED,
     },
     TaskLifecycleStatus.VERIFYING: {
         TaskLifecycleStatus.COMPLETE,
         TaskLifecycleStatus.FAILED,
     },
+    TaskLifecycleStatus.AWAITING_APPROVAL: {TaskLifecycleStatus.READY},
     TaskLifecycleStatus.FAILED: {
         TaskLifecycleStatus.RETRY,
         TaskLifecycleStatus.REPAIR,
@@ -62,6 +65,8 @@ class TaskRuntimeState:
             self.attempts += 1
         if target is TaskLifecycleStatus.FAILED:
             self.last_error = (error or "task failed").strip()
+        elif target is TaskLifecycleStatus.AWAITING_APPROVAL:
+            self.last_error = (error or "approval required").strip()
         elif target in {TaskLifecycleStatus.COMPLETE, TaskLifecycleStatus.READY}:
             self.last_error = None
 
@@ -140,6 +145,12 @@ class PlanRuntimeState:
             raise ValueError("task must be running or verifying before completion")
         state.transition(TaskLifecycleStatus.COMPLETE)
         self.refresh_ready_tasks()
+
+    def mark_awaiting_approval(self, task_id: str, message: str) -> None:
+        state = self._state(task_id)
+        if state.status is not TaskLifecycleStatus.RUNNING:
+            raise ValueError("task must be running before awaiting approval")
+        state.transition(TaskLifecycleStatus.AWAITING_APPROVAL, error=message)
 
     def mark_failed(self, task_id: str, error: str) -> None:
         state = self._state(task_id)
