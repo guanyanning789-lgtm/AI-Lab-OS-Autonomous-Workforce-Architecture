@@ -8,6 +8,7 @@ on:
       - ai/v0.2-worker-daemon
       - ai/v0.3-supervisor-runtime
       - ai/v0.4-multi-agent-runtime
+      - ai/v0.5-skill-system
   pull_request:
 
 jobs:
