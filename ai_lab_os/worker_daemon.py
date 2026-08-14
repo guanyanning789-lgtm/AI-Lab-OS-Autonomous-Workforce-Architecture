@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +15,10 @@ from ai_lab_os.worker_protocol import load_task, write_result
 
 
 SleepFn = Callable[[float], None]
+
+
+class WorkerCodeUpdated(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -36,16 +42,26 @@ def _run_git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _safe_pull(repository: Path) -> None:
+def _git_head(repository: Path) -> str:
+    completed = _run_git(["rev-parse", "HEAD"], cwd=repository)
+    if completed.returncode != 0:
+        raise RuntimeError((completed.stderr or "").strip() or "git rev-parse HEAD failed")
+    return (completed.stdout or "").strip()
+
+
+def _safe_pull(repository: Path) -> bool:
     status = _run_git(["status", "--porcelain"], cwd=repository)
     if status.returncode != 0:
         raise RuntimeError((status.stderr or "").strip() or "git status failed")
     if (status.stdout or "").strip():
         raise RuntimeError("worker repository must be clean before automatic pull")
 
+    before = _git_head(repository)
     pull = _run_git(["pull", "--ff-only"], cwd=repository)
     if pull.returncode != 0:
         raise RuntimeError((pull.stderr or "").strip() or (pull.stdout or "").strip() or "git pull failed")
+    after = _git_head(repository)
+    return before != after
 
 
 def discover_pending_tasks(config: DaemonConfig) -> list[Path]:
@@ -68,8 +84,8 @@ def discover_pending_tasks(config: DaemonConfig) -> list[Path]:
 
 def process_once(config: DaemonConfig) -> list[str]:
     repository = Path(config.repository_path).resolve()
-    if config.pull_before_scan:
-        _safe_pull(repository)
+    if config.pull_before_scan and _safe_pull(repository):
+        raise WorkerCodeUpdated("worker code updated from GitHub")
 
     processed: list[str] = []
     for task_path in discover_pending_tasks(config):
@@ -98,6 +114,14 @@ def process_once(config: DaemonConfig) -> list[str]:
     return processed
 
 
+def _restart_daemon() -> None:
+    print("DAEMON UPDATE = restarting with latest code", flush=True)
+    os.execv(
+        sys.executable,
+        [sys.executable, "-m", "ai_lab_os.worker_daemon", *sys.argv[1:]],
+    )
+
+
 def run_daemon(config: DaemonConfig, *, sleep_fn: SleepFn = time.sleep) -> None:
     if config.poll_seconds <= 0:
         raise ValueError("poll_seconds must be > 0")
@@ -109,6 +133,8 @@ def run_daemon(config: DaemonConfig, *, sleep_fn: SleepFn = time.sleep) -> None:
                 print("PROCESSED = " + ", ".join(processed), flush=True)
             else:
                 print("IDLE = no pending tasks", flush=True)
+        except WorkerCodeUpdated:
+            _restart_daemon()
         except Exception as exc:
             print(f"WORKER ERROR = {exc}", flush=True)
         sleep_fn(config.poll_seconds)
@@ -131,7 +157,11 @@ def main() -> int:
     )
 
     if args.once:
-        processed = process_once(config)
+        try:
+            processed = process_once(config)
+        except WorkerCodeUpdated:
+            print("UPDATED = rerun once-mode with latest code")
+            return 3
         print("PROCESSED = " + (", ".join(processed) if processed else "none"))
         return 0
 
