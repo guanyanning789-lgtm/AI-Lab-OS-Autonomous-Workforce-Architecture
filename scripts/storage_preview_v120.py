@@ -13,6 +13,7 @@ from ai_lab_os.storage_cleanup_plan import build_cleanup_plan, render_cleanup_pl
 from ai_lab_os.storage_collision_guard import guard_plan
 from ai_lab_os.storage_curator import StoragePlan, build_storage_plan
 from ai_lab_os.storage_decision_groups import build_decision_groups, render_decision_groups
+from ai_lab_os.storage_group_detail import render_group_details
 from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
 from ai_lab_os.storage_path_planner import build_migration_plan
 
@@ -36,19 +37,20 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.2 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.3 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
     parser.add_argument("--max-items", type=int, default=25)
+    parser.add_argument("--group-examples", type=int, default=5)
     args = parser.parse_args()
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.2 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.3 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = project boundaries + version families + decision grouping")
+    print("INTEL  = project boundaries + version families + decision groups + explanations")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
@@ -82,6 +84,8 @@ def main() -> int:
     print()
     print(render_decision_groups(groups))
     print()
+    print(render_group_details(groups, cleanup, max_examples=max(1, args.group_examples)))
+    print()
     print("VERSION FAMILIES:")
     if not families:
         print("  none")
@@ -99,7 +103,7 @@ def main() -> int:
     print(f"TRUNCATED          = {storage.truncated}")
     print("EXECUTED           = False")
     print("RESULT             = PREVIEW_ONLY")
-    print("MESSAGE            = Review grouped decisions, not thousands of individual files, before any real approval stage.")
+    print("MESSAGE            = Group explanations show size, actions, destinations, risk and rollback readiness before approval.")
     return 0
 
 
