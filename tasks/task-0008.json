@@ -1,0 +1,20 @@
+{
+  "task_id": "task-0008-fresh-session-final-v02-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "goal": "Implement quadratic_mean(values) in math_ops.py. It must return the square root of the arithmetic mean of the squared numeric values for a non-empty list.",
+  "success_criteria": [
+    "math_ops.py defines quadratic_mean(values)",
+    "quadratic_mean([3, 4]) returns 5/sqrt(2)",
+    "the specified pytest verification passes",
+    "only math_ops.py may be modified"
+  ],
+  "tests": [
+    "python -m pytest C:\\AI-Lab\\ai-lab-os\\tests\\e2e_task_0008_target.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
