@@ -53,9 +53,9 @@ def decide_recovery(
 ) -> RecoveryDecision:
     """Choose the next durable recovery action without performing it.
 
-    The policy is intentionally deterministic and fail-closed. V0.7.x can later
-    replace or augment the decision maker with a model/supervisor while keeping
-    this contract stable.
+    The policy is intentionally deterministic and fail-closed. Product lifecycle
+    states such as paused/cancelled are explicitly non-actionable so background
+    recovery cannot silently restart user-stopped work.
     """
 
     config = config or RecoveryPolicyConfig()
@@ -67,6 +67,16 @@ def decide_recovery(
             action=RecoveryAction.NONE,
             task_id=None,
             reason="goal is already complete",
+            safe_to_continue=False,
+        )
+
+    if status in {"paused", "cancelled"}:
+        return RecoveryDecision(
+            goal_id=state.goal_id,
+            action=RecoveryAction.NONE,
+            task_id=state.resume_cursor,
+            reason=f"goal lifecycle state is {status}; background recovery is disabled",
+            attempts=0,
             safe_to_continue=False,
         )
 
