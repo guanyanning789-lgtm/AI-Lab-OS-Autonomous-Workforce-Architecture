@@ -34,7 +34,7 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.5 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.6 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
     parser.add_argument("--max-items", type=int, default=15)
@@ -43,11 +43,11 @@ def main() -> int:
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.5 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.6 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = project roots + dependency boundaries + families + grouped explanations")
+    print("INTEL  = composite project roots + dependency boundaries + families + grouped explanations")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
@@ -97,7 +97,7 @@ def main() -> int:
     print(f"TRUNCATED          = {storage.truncated}")
     print("EXECUTED           = False")
     print("RESULT             = PREVIEW_ONLY")
-    print("MESSAGE            = Files inside detected project roots are protected as a unit before any organization proposal.")
+    print("MESSAGE            = Marker-based and composite project roots are protected as a unit before any organization proposal.")
     return 0
 
 
