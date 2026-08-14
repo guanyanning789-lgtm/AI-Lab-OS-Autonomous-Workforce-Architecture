@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 61,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); real Brain endpoints discovered; schema-aware Windows E2E runner ready",
+  "percent": 63,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); Brain transport and safety gates verified; legal Windows action discovery in progress",
   "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 88,
+  "execution_percent": 93,
   "execution_state": "RUNNING",
-  "execution_step": "Inspect the live /task/windows/e2e schema and perform a guarded dry-run",
-  "execution_detail": "The local Brain is online and exposes /actions/execute, /screen/agent, /screen/understand, and /task/windows/e2e. A schema-aware runner now resolves the real request body from openapi.json and refuses to POST unless an explicit dry_run or approval safety gate is present.",
+  "execution_step": "Discover Brain's legal Windows action contract without guessing",
+  "execution_detail": "The guarded mock request reached Brain successfully, but the placeholder action was correctly rejected as unsupported. OpenAPI for /task/windows/e2e does not expose an enum/default/example for action, so a new read-only discovery tool now cross-inspects /task/windows/e2e, /actions/execute, /screen/agent, /screen/understand, and related components for published action values.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Validate the real Windows E2E contract without guessing request fields or changing the desktop.",
-  "next_step": "Pull the branch and run scripts/run_windows_e2e_v043.py first in schema-only mode. If the endpoint exposes an explicit safety gate, run it once with --send-dry-run. Use the response to finish the ComputerExecutor transport and then perform one harmless real action before marking V0.4.3 DONE.",
+  "current_work": "Resolve the final action-contract mismatch while keeping mock=true and allow_real_actions=false.",
+  "next_step": "Run scripts/discover_windows_actions_v043.py locally. If OpenAPI exposes a legal action candidate elsewhere, wire it into the guarded mock E2E and verify accepted execution. If no candidate is exposed, inspect the local Brain source guard directly.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "Run the schema-only Windows E2E command and send me the output. No real desktop action will be sent in this first run."
+  "user_action": "Run the read-only discovery command and send the LEGAL_ACTION_CANDIDATES / ACTION_HINTS output. It does not execute any Windows action."
 }
