@@ -1,16 +1,16 @@
 {
   "milestone": "V0.6 Persistent Goal / Memory",
-  "percent": 72,
-  "progress": "V0.6.1 Persistent Goal Store PASS; V0.6.2 Supervisor persistence PASS; V0.6.3 Resume After Restart PASS after schema compatibility fix; V0.6.4 append-only execution history and Supervisor terminal recording committed",
-  "execution_name": "V0.6.4 Execution History / Memory",
+  "percent": 88,
+  "progress": "V0.6.1 Persistent Goal Store PASS; V0.6.2 Supervisor persistence PASS; V0.6.3 Resume After Restart PASS; V0.6.4 Execution History / Memory PASS; V0.6.5 real restart + resume graduation script and CI regression committed",
+  "execution_name": "V0.6.5 Restart + Resume E2E",
   "execution_percent": 72,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for durable Goal/Skill execution history",
-  "execution_detail": "JsonExecutionHistory stores append-only JSONL records derived from terminal PersistentGoalState snapshots. Each record captures goal_id, inferred skill_id, terminal status, cycles, completed/failed tasks, total attempts, durable evidence, events, and timestamp. It supports filtering by goal_id/skill_id/status and latest lookup. Supervisor optionally records exactly one history entry when a run terminates as complete, replan_required, blocked, or cycle_limit while live transition persistence remains in JsonGoalStore.",
+  "execution_step": "Run full regression CI before the real local restart/resume graduation test",
+  "execution_detail": "The V0.6.5 graduation flow starts from a natural-language Skill request, compiles Research -> Coding -> Computer tasks, runs exactly one Supervisor cycle with persistent Goal/History stores, then constructs fresh store/router objects to simulate a restarted process and resumes from the persisted cursor. CI asserts Task 1 is not executed again, Tasks 2/3 complete after resume, persistent state ends complete with no cursor, execution history records the interrupted cycle-limit run plus the final complete run, and the event stream reaches GOAL_COMPLETE. The manual local script uses real SearXNG, local coding pytest, and Brain Windows mock with approved=false/dry_run=true.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.6.4 history storage and Supervisor integration against the complete regression suite.",
-  "next_step": "If CI is green, mark V0.6.4 DONE and begin V0.6.5 real restart-and-resume E2E using the natural-language Skill runtime and persistent stores.",
+  "current_work": "Verify V0.6.5 graduation semantics against the complete regression suite.",
+  "next_step": "If CI is green, pull ai/v0.6-persistent-goal-memory locally and run scripts/manual_v065_restart_resume_e2e.py against Brain :8000 and SearXNG :8888. Mark V0.6 DONE only after GOAL_COMPLETE without repeating completed work.",
   "finish_line": "V0.6 completes when an in-progress natural-language Skill goal persists across process restart, resumes without repeating completed work, retains durable execution history/evidence, and reaches GOAL_COMPLETE in a real local E2E.",
-  "user_action": "None. Keep the V0.6 watcher open."
+  "user_action": "None until CI is green. Keep the V0.6 watcher open."
 }
