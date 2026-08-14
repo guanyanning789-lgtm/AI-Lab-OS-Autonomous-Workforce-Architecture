@@ -8,7 +8,7 @@ from ai_lab_os.models import AgentKind
 from ai_lab_os.persistent_goal_store import JsonGoalStore
 from ai_lab_os.skill_contract import SkillContract, SkillInputSpec, SkillStepSpec
 from ai_lab_os.skill_registry import SkillRegistry
-from ai_lab_os.supervisor_loop import TaskExecutionResult
+from ai_lab_os.supervisor_loop import TaskExecutionResult, TaskExecutionStatus
 from ai_lab_os.task_planner import PlannedTaskKind
 
 
@@ -28,9 +28,9 @@ def test_launch_routes_persists_and_executes_one_request(tmp_path) -> None:
     store = JsonGoalStore(tmp_path / "goals.json")
     seen: list[str] = []
 
-    def executor(task, attempt):
+    def executor(task):
         seen.append(task.task_id)
-        return TaskExecutionResult(ok=True, message="done", evidence=("proof",))
+        return TaskExecutionResult(TaskExecutionStatus.SUCCESS, message="done")
 
     result = launch_goal(
         GoalIntakeRequest("请研究 pytest", goal_id="goal-launch"),
@@ -50,8 +50,8 @@ def test_launch_routes_persists_and_executes_one_request(tmp_path) -> None:
 def test_launch_rejects_existing_durable_goal_instead_of_overwriting(tmp_path) -> None:
     store = JsonGoalStore(tmp_path / "goals.json")
 
-    def executor(task, attempt):
-        return TaskExecutionResult(ok=True, message="done")
+    def executor(task):
+        return TaskExecutionResult(TaskExecutionStatus.SUCCESS, message="done")
 
     request = GoalIntakeRequest("请研究 pytest", goal_id="goal-duplicate")
     launch_goal(request, _registry(), executor, store)
