@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 34,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor implementation + tests committed",
-  "execution_name": "V0.4.2 Real Research Executor",
-  "execution_percent": 65,
+  "percent": 46,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor started",
+  "execution_name": "V0.4.3 Real Computer Executor",
+  "execution_percent": 10,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for SearXNG-backed ResearchExecutor",
-  "execution_detail": "Research tasks can now query a configurable local SearXNG endpoint and return structured source evidence. Tests cover success, max-source limits, empty results, backend failure, and fail-closed behavior for non-research agents.",
+  "execution_step": "Build safe transport adapter for the local Windows execution backend",
+  "execution_detail": "Connect AgentKind.COMPUTER tasks to a configurable local HTTP/Windows backend while preserving the Supervisor contract. Default transport is dry-run and not approved; real desktop execution must be explicitly enabled for the later local E2E.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.4.2 against the full regression suite.",
-  "next_step": "If CI is green, mark V0.4.2 DONE and begin V0.4.3 Computer Executor. If red, repair only the Research adapter and rerun.",
+  "current_work": "Implement ComputerExecutor + transport contract and regression tests.",
+  "next_step": "Commit ComputerExecutor tests, run full CI, then perform a local Windows E2E before marking V0.4.3 truly complete.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "None. Keep the V0.4 execution monitor open."
+  "user_action": "None yet. Keep the V0.4 execution monitor open; a local command will be requested only when Windows E2E is ready."
 }
