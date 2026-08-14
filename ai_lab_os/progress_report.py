@@ -47,10 +47,12 @@ class ProgressReportService:
             final_result = "GOAL_COMPLETE"
         elif snapshot.status == "cancelled":
             final_result = "CANCELLED"
+        elif snapshot.status == "approval_required":
+            final_result = "APPROVAL_REQUIRED"
         elif snapshot.status in {"blocked", "replan_required"}:
             final_result = "NEEDS_ATTENTION"
 
-        recovering = snapshot.status not in {"complete", "cancelled", "paused"} and bool(recovery_events)
+        recovering = snapshot.status not in {"complete", "cancelled", "paused", "approval_required"} and bool(recovery_events)
         return ProgressReport(
             goal_id=snapshot.goal_id,
             status=snapshot.status,
