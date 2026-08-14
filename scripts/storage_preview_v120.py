@@ -16,16 +16,12 @@ from ai_lab_os.storage_decision_groups import build_decision_groups, render_deci
 from ai_lab_os.storage_group_detail import render_group_details
 from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
 from ai_lab_os.storage_path_planner import build_migration_plan
+from ai_lab_os.storage_subgroups import build_subgroups, render_subgroups
 
 
 def existing_user_roots() -> tuple[Path, ...]:
     home = Path.home()
-    candidates = (
-        home / "Downloads",
-        home / "Desktop",
-        Path(r"C:\AI-Lab"),
-        Path(r"D:\AI-Lab"),
-    )
+    candidates = (home / "Downloads", home / "Desktop", Path(r"C:\AI-Lab"), Path(r"D:\AI-Lab"))
     seen: set[str] = set()
     roots: list[Path] = []
     for path in candidates:
@@ -37,43 +33,31 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.3 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.4 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
-    parser.add_argument("--max-items", type=int, default=25)
-    parser.add_argument("--group-examples", type=int, default=5)
+    parser.add_argument("--max-items", type=int, default=15)
+    parser.add_argument("--group-examples", type=int, default=3)
     args = parser.parse_args()
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.3 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.4 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = project boundaries + version families + decision groups + explanations")
+    print("INTEL  = project boundaries + families + groups + explanations + semantic subgroups")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
     print()
-
     if not roots:
         print("RESULT = FAILED")
-        print("ERROR  = no configured preview roots exist")
         return 1
 
-    raw = build_storage_plan(
-        roots,
-        max_files=max(1, args.max_files),
-        duplicate_min_bytes=max(1, args.duplicate_min_mb) * 1024 * 1024,
-    )
+    raw = build_storage_plan(roots, max_files=max(1, args.max_files), duplicate_min_bytes=max(1, args.duplicate_min_mb) * 1024 * 1024)
     bounded_candidates = apply_project_boundaries(raw.candidates)
-    storage = StoragePlan(
-        candidates=bounded_candidates,
-        duplicates=raw.duplicates,
-        reclaimable_bytes=raw.reclaimable_bytes,
-        scanned_files=raw.scanned_files,
-        truncated=raw.truncated,
-    )
+    storage = StoragePlan(bounded_candidates, raw.duplicates, raw.reclaimable_bytes, raw.scanned_files, raw.truncated)
     families = build_version_families(bounded_candidates)
     proposals = build_migration_plan(storage.candidates)
     guards = guard_plan(proposals)
@@ -86,24 +70,22 @@ def main() -> int:
     print()
     print(render_group_details(groups, cleanup, max_examples=max(1, args.group_examples)))
     print()
-    print("VERSION FAMILIES:")
-    if not families:
-        print("  none")
-    for family in families[:20]:
-        print(f"  {family.family}: {len(family.members)} files; latest=v{family.latest.raw_version}")
-        print(f"    latest     = {family.latest.path}")
-        print(f"    historical = {len(family.historical)}")
-    if len(families) > 20:
-        print(f"  ... {len(families) - 20} more families")
+    total_subgroups = 0
+    print("SEMANTIC SUBGROUPS:")
+    for group in groups:
+        subgroups = build_subgroups(group, cleanup.items)
+        total_subgroups += len(subgroups)
+        print(render_subgroups(group, subgroups, max_examples=2))
     print()
     print(f"RAW_APPROVAL_ITEMS = {cleanup.approval_items}")
     print(f"DECISION_GROUPS    = {len(groups)}")
+    print(f"SEMANTIC_SUBGROUPS = {total_subgroups}")
     print(f"VERSION_FAMILIES   = {len(families)}")
     print(f"SCANNED_FILES      = {storage.scanned_files}")
     print(f"TRUNCATED          = {storage.truncated}")
     print("EXECUTED           = False")
     print("RESULT             = PREVIEW_ONLY")
-    print("MESSAGE            = Group explanations show size, actions, destinations, risk and rollback readiness before approval.")
+    print("MESSAGE            = Large groups are split by semantic file category and proposed action before approval.")
     return 0
 
 
