@@ -1,8 +1,8 @@
 {
   "milestone": "V0.3 Supervisor Runtime",
-  "progress": "V0.3.1 Goal Contract PASS; V0.3.2 Task Planner PASS (42 tests); V0.3.3 Task State Machine implemented and awaiting CI verification",
-  "current_work": "The supervisor runtime now tracks every planned task through PENDING -> READY -> RUNNING -> VERIFYING -> COMPLETE, unlocks dependent tasks only after prerequisites complete, records attempts and last errors, and supports FAILED -> RETRY / REPAIR / REPLAN recovery paths. Unit tests cover dependency unlocking, invalid transitions, retries, repairs, replans, and full-plan completion.",
-  "next_step": "Verify V0.3.3 in GitHub Actions. If green, freeze the state contract and implement V0.3.4 Supervisor Loop that repeatedly selects the next READY task, dispatches it, records outcomes, triggers recovery when needed, and decides when the overall goal is complete.",
+  "progress": "V0.3.1 Goal Contract PASS; V0.3.2 Task Planner PASS (42 tests); V0.3.3 Task State Machine PASS (47 tests); V0.3.4 Supervisor Loop implemented and awaiting CI verification",
+  "current_work": "The Supervisor Loop now repeatedly selects the next READY task, transitions it to RUNNING, dispatches it through an executor callback, records SUCCESS/FAILED/NEEDS_REPLAN outcomes, unlocks dependent tasks after completion, retries transient failures, escalates exhausted failures to REPLAN, converts executor exceptions into recoverable failures, and declares GOAL_COMPLETE only after every planned task completes.",
+  "next_step": "Verify V0.3.4 in GitHub Actions. If green, freeze the supervisor loop contract and implement V0.3.5 Agent Router so Coding, Research, and Computer tasks can be dispatched to different executors without changing supervisor orchestration semantics.",
   "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
-  "user_action": "None. Keep scripts/watch_project_status.py running if you want continuous remote progress updates in the terminal."
+  "user_action": "None. Keep scripts/watch_project_status.py running to see these remote progress changes in the terminal."
 }
