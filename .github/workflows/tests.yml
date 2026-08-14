@@ -12,6 +12,7 @@ on:
       - ai/v0.6-persistent-goal-memory
       - ai/v0.7-autonomous-recovery
       - ai/v0.8-goal-intake-orchestration
+      - ai/v0.9-product-runtime
   pull_request:
 
 jobs:
