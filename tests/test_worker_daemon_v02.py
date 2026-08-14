@@ -108,3 +108,35 @@ def test_process_once_requests_restart_when_pull_changes_head(monkeypatch, tmp_p
 
     with pytest.raises(WorkerCodeUpdated, match="updated"):
         process_once(DaemonConfig(repository_path=str(repo), pull_before_scan=True))
+
+
+def test_terminal_surfaces_user_verification_request(capsys, tmp_path):
+    repo = _init_repo(tmp_path)
+    verification = repo / "verification"
+    verification.mkdir()
+    (verification / "request.json").write_text(
+        json.dumps(
+            {
+                "task_id": "task-real-e2e",
+                "title": "Cline real-machine validation",
+                "message": "Keep Brain and Daemon running, then open ChatGPT.",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    processed = process_once(
+        DaemonConfig(
+            repository_path=str(repo),
+            pull_before_scan=False,
+            publish_results=False,
+            sync_managed_repositories=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert processed == []
+    assert "USER VERIFICATION REQUIRED" in output
+    assert "task-real-e2e" in output
+    assert "Cline real-machine validation" in output
+    assert "Keep Brain and Daemon running" in output
