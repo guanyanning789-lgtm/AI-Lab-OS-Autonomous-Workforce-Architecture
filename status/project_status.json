@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 46,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor started",
+  "percent": 52,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter + tests committed",
   "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 10,
+  "execution_percent": 60,
   "execution_state": "RUNNING",
-  "execution_step": "Build safe transport adapter for the local Windows execution backend",
-  "execution_detail": "Connect AgentKind.COMPUTER tasks to a configurable local HTTP/Windows backend while preserving the Supervisor contract. Default transport is dry-run and not approved; real desktop execution must be explicitly enabled for the later local E2E.",
+  "execution_step": "Run full regression CI for ComputerExecutor transport adapter",
+  "execution_detail": "Computer tasks now map into a configurable local Windows backend contract. Safe defaults are approved=false and dry_run=true; explicit real execution uses approved=true and dry_run=false. Tests cover safe defaults, explicit real mode, backend failure, backend exception, and fail-closed non-computer routing.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Implement ComputerExecutor + transport contract and regression tests.",
-  "next_step": "Commit ComputerExecutor tests, run full CI, then perform a local Windows E2E before marking V0.4.3 truly complete.",
+  "current_work": "Verify the ComputerExecutor adapter without pretending CI can operate the user's physical desktop.",
+  "next_step": "If CI is green, prepare one local Windows E2E command against the real host backend. Mark V0.4.3 DONE only after that local execution passes.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "None yet. Keep the V0.4 execution monitor open; a local command will be requested only when Windows E2E is ready."
+  "user_action": "None yet. Keep the V0.4 execution monitor open."
 }
