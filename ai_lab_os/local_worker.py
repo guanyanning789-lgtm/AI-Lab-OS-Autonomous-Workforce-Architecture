@@ -35,14 +35,6 @@ def _safe_pytest_argv(command: str) -> list[str]:
 
 
 def _clear_runtime_artifacts(repository: Path) -> None:
-    """Remove disposable Python test caches before verification.
-
-    Repair can rewrite a module within the same filesystem timestamp window
-    while keeping the same file size. On Windows, an existing ``.pyc`` may
-    then look current even though the source changed, causing the verification
-    subprocess to execute stale bytecode. These directories are generated
-    artifacts, so the worker removes them before every verification run.
-    """
     for directory in repository.rglob("*"):
         if directory.is_dir() and directory.name in RUNTIME_ARTIFACT_DIRS:
             shutil.rmtree(directory, ignore_errors=True)
@@ -77,6 +69,22 @@ def _changed_files(repository: Path) -> list[str]:
             continue
         changed.append(path)
     return changed
+
+
+def _repair_prompt(task: WorkerTask, stdout: str, stderr: str) -> str:
+    goal = task.goal.strip() or "Repair the failing test suite for this local worker task."
+    criteria = "\n".join(f"- {item}" for item in task.success_criteria) or "- All configured pytest verification commands must pass."
+    allowed = "\n".join(f"- {path}" for path in task.allowed_files)
+    evidence_parts = [part.strip() for part in (stdout, stderr) if part.strip()]
+    evidence = "\n\n".join(evidence_parts) or "No test output was captured."
+    return (
+        f"Task goal:\n{goal}\n\n"
+        f"Allowed files (do not modify anything else):\n{allowed}\n\n"
+        f"Success criteria:\n{criteria}\n\n"
+        f"Current verification failure:\n{evidence}\n\n"
+        "Use the failure output as evidence. Make the smallest safe code change required to satisfy the task. "
+        "Do not modify tests unless a test file is explicitly listed in Allowed files."
+    )
 
 
 def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerResult:
@@ -117,10 +125,7 @@ def run_task(task: WorkerTask, *, brain: BrainClient | None = None) -> WorkerRes
         client = brain or BrainClient()
         client.repair(
             BrainRepairRequest(
-                task=(
-                    "Repair the failing test suite for this local worker task. "
-                    "Use the test output as evidence and make the smallest safe change."
-                ),
+                task=_repair_prompt(task, stdout, stderr),
                 repository_path=str(repository),
                 tests=task.tests,
                 allowed_files=task.allowed_files,
