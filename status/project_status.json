@@ -1,16 +1,16 @@
 {
   "milestone": "V0.3 Supervisor Runtime",
-  "percent": 84,
+  "percent": 86,
   "progress": "V0.3.1 PASS; V0.3.2 PASS; V0.3.3 PASS; V0.3.4 PASS; V0.3.5 Agent Router PASS after contract-alignment repair",
   "execution_name": "V0.3.6 Real Multi-Step E2E",
-  "execution_percent": 5,
+  "execution_percent": 25,
   "execution_state": "RUNNING",
-  "execution_step": "Prepare end-to-end supervisor execution harness",
-  "execution_detail": "Starting the graduation test that connects GoalContract -> Planner -> State Machine -> Supervisor -> Agent Router -> Executor -> Recovery -> GOAL_COMPLETE.",
+  "execution_step": "Build end-to-end supervisor graduation test",
+  "execution_detail": "Wire GoalContract -> deterministic Planner -> mixed-agent TaskPlan -> Supervisor Loop -> AgentRouter. The coding executor will intentionally fail once so RETRY recovery must occur before GOAL_COMPLETE.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "V0.3.5 is green. V0.3.6 has started.",
-  "next_step": "Build the E2E harness, exercise a transient failure and recovery, run full pytest, then mark DONE only if the complete chain reaches GOAL_COMPLETE.",
+  "current_work": "Building the V0.3.6 graduation test harness.",
+  "next_step": "Commit the E2E test, run full pytest in GitHub Actions, inspect failures if any, and mark DONE only after GOAL_COMPLETE evidence is verified.",
   "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
-  "user_action": "None. Watch EXECUTION percent and STATE. DONE means you can tell me to continue; FAILED means the terminal will show the error."
+  "user_action": "None. Keep the execution monitor open."
 }
