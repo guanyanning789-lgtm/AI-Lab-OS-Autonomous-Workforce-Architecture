@@ -16,6 +16,7 @@ class SkillSelection:
     skill: SkillContract
     score: int
     matched_terms: tuple[str, ...]
+    explicit_trigger_matches: int = 0
 
 
 @dataclass(frozen=True)
@@ -44,13 +45,21 @@ def _score_skill(request: str, skill: SkillContract) -> SkillSelection:
     request_tokens = _tokens(request)
     score = 0
     matches: list[str] = []
+    explicit_trigger_matches = 0
 
-    phrases = ((skill.skill_id, 8), (skill.name, 10), *[(item, 12) for item in _triggers(skill)])
-    for phrase, weight in phrases:
+    identity_phrases = ((skill.skill_id, 8), (skill.name, 10))
+    for phrase, weight in identity_phrases:
         clean = _normalize(phrase)
         if clean and clean in normalized:
             score += weight
             matches.append(phrase)
+
+    for trigger in _triggers(skill):
+        clean = _normalize(trigger)
+        if clean and clean in normalized:
+            score += 12
+            explicit_trigger_matches += 1
+            matches.append(trigger)
 
     description_overlap = request_tokens & _tokens(skill.description)
     input_overlap = request_tokens & {
@@ -62,7 +71,12 @@ def _score_skill(request: str, skill: SkillContract) -> SkillSelection:
     score += len(input_overlap)
     matches.extend(sorted(description_overlap | input_overlap))
 
-    return SkillSelection(skill=skill, score=score, matched_terms=tuple(dict.fromkeys(matches)))
+    return SkillSelection(
+        skill=skill,
+        score=score,
+        matched_terms=tuple(dict.fromkeys(matches)),
+        explicit_trigger_matches=explicit_trigger_matches,
+    )
 
 
 def select_skill(request: str, registry: SkillRegistry, *, min_score: int = 2) -> SkillSelection:
@@ -71,15 +85,21 @@ def select_skill(request: str, registry: SkillRegistry, *, min_score: int = 2) -
         raise ValueError("skill request cannot be empty")
     candidates = sorted(
         (_score_skill(clean_request, skill) for skill in registry.list()),
-        key=lambda item: (-item.score, item.skill.skill_id),
+        key=lambda item: (-item.explicit_trigger_matches, -item.score, item.skill.skill_id),
     )
     if not candidates or candidates[0].score < min_score:
         raise LookupError("no registered skill matched the request with sufficient confidence")
-    if len(candidates) > 1 and candidates[0].score == candidates[1].score:
-        raise LookupError(
-            "ambiguous skill request: "
-            f"{candidates[0].skill.skill_id}, {candidates[1].skill.skill_id}"
-        )
+    if len(candidates) > 1:
+        top = candidates[0]
+        second = candidates[1]
+        if (
+            top.explicit_trigger_matches == second.explicit_trigger_matches
+            and top.score == second.score
+        ):
+            raise LookupError(
+                "ambiguous skill request: "
+                f"{top.skill.skill_id}, {second.skill.skill_id}"
+            )
     return candidates[0]
 
 
