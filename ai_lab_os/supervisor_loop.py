@@ -69,9 +69,12 @@ def _persist_runtime(
     try:
         previous = store.load(plan.goal_id)
         created_at = previous.created_at
+        schema_version = previous.schema_version
     except LookupError:
         previous = None
-        created_at = PersistentGoalState.from_plan(plan).created_at
+        initial = PersistentGoalState.from_plan(plan)
+        created_at = initial.created_at
+        schema_version = "0.6.2"
 
     task_states = tuple(
         PersistentTaskState(
@@ -120,7 +123,7 @@ def _persist_runtime(
             cycles=cycles,
             events=tuple(events),
             created_at=created_at,
-            schema_version="0.6.3",
+            schema_version=schema_version,
         )
     )
 
@@ -151,74 +154,30 @@ def run_supervisor_loop(
         if runtime.all_complete():
             completed = tuple(task.task_id for task in plan.tasks)
             events.append("GOAL_COMPLETE")
-            _persist_runtime(
-                goal_store,
-                plan,
-                runtime,
-                cycles=cycles,
-                events=events,
-                goal_status="complete",
-            )
-            return SupervisorRunResult(
-                goal_id=plan.goal_id,
-                status="complete",
-                cycles=cycles,
-                completed_tasks=completed,
-                message="All planned tasks completed successfully.",
-                events=events,
-            )
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="complete")
+            return SupervisorRunResult(plan.goal_id, "complete", cycles, completed, message="All planned tasks completed successfully.", events=events)
 
         task_id = runtime.next_ready_task_id()
         if task_id is None:
-            replan_task = next(
-                (
-                    task.task_id
-                    for task in plan.tasks
-                    if runtime.tasks[task.task_id].status is TaskLifecycleStatus.REPLAN
-                ),
-                None,
-            )
+            replan_task = next((task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.REPLAN), None)
             if replan_task is not None:
                 events.append(f"REPLAN_REQUIRED:{replan_task}")
-                _persist_runtime(
-                    goal_store,
-                    plan,
-                    runtime,
-                    cycles=cycles,
-                    events=events,
-                    goal_status="replan_required",
-                )
+                _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="replan_required")
                 return SupervisorRunResult(
                     goal_id=plan.goal_id,
                     status="replan_required",
                     cycles=cycles,
-                    completed_tasks=tuple(
-                        task.task_id
-                        for task in plan.tasks
-                        if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE
-                    ),
+                    completed_tasks=tuple(task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE),
                     failed_task_id=replan_task,
                     message="Supervisor requires a new plan before continuing.",
                     events=events,
                 )
-
-            _persist_runtime(
-                goal_store,
-                plan,
-                runtime,
-                cycles=cycles,
-                events=events,
-                goal_status="blocked",
-            )
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="blocked")
             return SupervisorRunResult(
                 goal_id=plan.goal_id,
                 status="blocked",
                 cycles=cycles,
-                completed_tasks=tuple(
-                    task.task_id
-                    for task in plan.tasks
-                    if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE
-                ),
+                completed_tasks=tuple(task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE),
                 message="No READY task is available and the plan is not complete.",
                 events=events,
             )
@@ -233,10 +192,7 @@ def run_supervisor_loop(
         try:
             result = executor(task)
         except Exception as exc:
-            result = TaskExecutionResult(
-                status=TaskExecutionStatus.FAILED,
-                message=f"executor exception: {exc}",
-            )
+            result = TaskExecutionResult(TaskExecutionStatus.FAILED, f"executor exception: {exc}")
 
         if result.status is TaskExecutionStatus.SUCCESS:
             runtime.mark_complete(task_id)
@@ -256,11 +212,7 @@ def run_supervisor_loop(
             continue
 
         if state.attempts < policy.max_attempts_per_task:
-            strategy = (
-                TaskLifecycleStatus.RETRY
-                if state.attempts == 1
-                else TaskLifecycleStatus.REPAIR
-            )
+            strategy = TaskLifecycleStatus.RETRY if state.attempts == 1 else TaskLifecycleStatus.REPAIR
             runtime.request_recovery(task_id, strategy)
             events.append(f"{strategy.value.upper()}:{task_id}")
             _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
@@ -270,23 +222,12 @@ def run_supervisor_loop(
         events.append(f"REPLAN:{task_id}")
         _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
-    _persist_runtime(
-        goal_store,
-        plan,
-        runtime,
-        cycles=cycles,
-        events=events,
-        goal_status="cycle_limit",
-    )
+    _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="cycle_limit")
     return SupervisorRunResult(
         goal_id=plan.goal_id,
         status="cycle_limit",
         cycles=cycles,
-        completed_tasks=tuple(
-            task.task_id
-            for task in plan.tasks
-            if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE
-        ),
+        completed_tasks=tuple(task.task_id for task in plan.tasks if runtime.tasks[task.task_id].status is TaskLifecycleStatus.COMPLETE),
         message="Supervisor stopped after reaching max_cycles.",
         events=events,
     )
@@ -303,10 +244,4 @@ def resume_supervisor_from_store(
 
     persisted = goal_store.load(goal_id)
     plan = TaskPlanContract.from_dict(persisted.plan)
-    return run_supervisor_loop(
-        plan,
-        executor,
-        policy=policy,
-        goal_store=goal_store,
-        resume_state=persisted,
-    )
+    return run_supervisor_loop(plan, executor, policy=policy, goal_store=goal_store, resume_state=persisted)
