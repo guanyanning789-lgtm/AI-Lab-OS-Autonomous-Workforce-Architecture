@@ -17,6 +17,7 @@ class SkillSelection:
     score: int
     matched_terms: tuple[str, ...]
     explicit_trigger_matches: int = 0
+    first_trigger_position: int | None = None
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ def _score_skill(request: str, skill: SkillContract) -> SkillSelection:
     score = 0
     matches: list[str] = []
     explicit_trigger_matches = 0
+    trigger_positions: list[int] = []
 
     identity_phrases = ((skill.skill_id, 8), (skill.name, 10))
     for phrase, weight in identity_phrases:
@@ -56,10 +58,13 @@ def _score_skill(request: str, skill: SkillContract) -> SkillSelection:
 
     for trigger in _triggers(skill):
         clean = _normalize(trigger)
-        if clean and clean in normalized:
-            score += 12
-            explicit_trigger_matches += 1
-            matches.append(trigger)
+        if clean:
+            position = normalized.find(clean)
+            if position >= 0:
+                score += 12
+                explicit_trigger_matches += 1
+                trigger_positions.append(position)
+                matches.append(trigger)
 
     description_overlap = request_tokens & _tokens(skill.description)
     input_overlap = request_tokens & {
@@ -76,7 +81,12 @@ def _score_skill(request: str, skill: SkillContract) -> SkillSelection:
         score=score,
         matched_terms=tuple(dict.fromkeys(matches)),
         explicit_trigger_matches=explicit_trigger_matches,
+        first_trigger_position=min(trigger_positions) if trigger_positions else None,
     )
+
+
+def _position_rank(selection: SkillSelection) -> int:
+    return selection.first_trigger_position if selection.first_trigger_position is not None else 10**9
 
 
 def select_skill(request: str, registry: SkillRegistry, *, min_score: int = 2) -> SkillSelection:
@@ -85,7 +95,12 @@ def select_skill(request: str, registry: SkillRegistry, *, min_score: int = 2) -
         raise ValueError("skill request cannot be empty")
     candidates = sorted(
         (_score_skill(clean_request, skill) for skill in registry.list()),
-        key=lambda item: (-item.explicit_trigger_matches, -item.score, item.skill.skill_id),
+        key=lambda item: (
+            -item.explicit_trigger_matches,
+            -item.score,
+            _position_rank(item),
+            item.skill.skill_id,
+        ),
     )
     if not candidates or candidates[0].score < min_score:
         raise LookupError("no registered skill matched the request with sufficient confidence")
@@ -95,6 +110,7 @@ def select_skill(request: str, registry: SkillRegistry, *, min_score: int = 2) -
         if (
             top.explicit_trigger_matches == second.explicit_trigger_matches
             and top.score == second.score
+            and _position_rank(top) == _position_rank(second)
         ):
             raise LookupError(
                 "ambiguous skill request: "
