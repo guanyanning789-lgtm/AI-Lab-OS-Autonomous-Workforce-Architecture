@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -28,6 +29,7 @@ class DaemonConfig:
     tasks_dir: str = "tasks"
     results_dir: str = "results"
     managed_repositories_file: str = "managed_repositories.json"
+    verification_request_file: str = "verification/request.json"
     poll_seconds: float = 15.0
     publish_results: bool = True
     pull_before_scan: bool = True
@@ -79,6 +81,33 @@ def _sync_managed(config: DaemonConfig, repository: Path) -> None:
         )
 
 
+def _print_verification_request(config: DaemonConfig, repository: Path) -> None:
+    request_path = repository / config.verification_request_file
+    if not request_path.exists():
+        return
+
+    try:
+        payload = json.loads(request_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"USER VERIFICATION NOTICE ERROR = {exc}", flush=True)
+        return
+
+    title = str(payload.get("title") or "Local verification is required").strip()
+    message = str(payload.get("message") or "Please check ChatGPT for the requested validation step.").strip()
+    task_id = str(payload.get("task_id") or "").strip()
+
+    print("", flush=True)
+    print("=" * 72, flush=True)
+    print("🔴 USER VERIFICATION REQUIRED", flush=True)
+    if task_id:
+        print(f"TASK = {task_id}", flush=True)
+    print(f"TITLE = {title}", flush=True)
+    print(f"ACTION = {message}", flush=True)
+    print("Open ChatGPT for the shortest validation instruction.", flush=True)
+    print("=" * 72, flush=True)
+    print("", flush=True)
+
+
 def discover_pending_tasks(config: DaemonConfig) -> list[Path]:
     repository = Path(config.repository_path).resolve()
     tasks_root = repository / config.tasks_dir
@@ -103,6 +132,7 @@ def process_once(config: DaemonConfig) -> list[str]:
         raise WorkerCodeUpdated("worker code updated from GitHub")
 
     _sync_managed(config, repository)
+    _print_verification_request(config, repository)
 
     processed: list[str] = []
     for task_path in discover_pending_tasks(config):
