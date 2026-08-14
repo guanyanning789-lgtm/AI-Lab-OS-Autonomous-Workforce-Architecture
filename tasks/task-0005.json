@@ -1,0 +1,20 @@
+{
+  "task_id": "task-0005-autonomous-brain-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "goal": "Implement weighted_average(values, weights) in math_ops.py. It should return sum(value * weight) / sum(weights) for matching non-empty sequences.",
+  "success_criteria": [
+    "math_ops.py defines weighted_average(values, weights)",
+    "weighted_average([10, 20, 30], [1, 2, 1]) returns 20",
+    "the specified pytest verification passes",
+    "only math_ops.py may be modified"
+  ],
+  "tests": [
+    "python -m pytest C:\\AI-Lab\\ai-lab-os\\tests\\e2e_task_0005_target.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
