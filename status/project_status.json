@@ -1,16 +1,16 @@
 {
   "milestone": "V1.0 Final Integration",
-  "percent": 82,
-  "progress": "V1.0.1 final natural-language entrypoint PASS; V1.0.2 service lifecycle PASS; V1.0.3 live progress/reporting PASS; V1.0.4 safe approval boundary PASS; V1.0.5 final acceptance E2E implementation committed",
-  "execution_name": "V1.0.5 Final Acceptance E2E",
-  "execution_percent": 74,
-  "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for one-sentence final product acceptance",
-  "execution_detail": "The final acceptance test now exercises the public V1 product stack as one flow: ProductServiceHost start, FinalNaturalLanguageEntrypoint one-sentence submission, automatic Research and Coding execution, sensitive Computer task stopping at approval_required before execution, user-facing 66% progress, service stop/start with durable waiting state preserved and no approval replay, explicit ProductRuntime approval, bounded recovery tick, Computer completion, 100% progress, GOAL_COMPLETE event and final report. No test code manually constructs GoalContract, TaskPlan, Supervisor resume state or recovery cursor plumbing.",
-  "execution_result": "V1.0.1-V1.0.4 PASS; V1.0.5 CI acceptance committed; full regression validating...",
+  "percent": 92,
+  "progress": "V1.0.1 final natural-language entrypoint PASS; V1.0.2 service lifecycle PASS; V1.0.3 live progress/reporting PASS; V1.0.4 safe approval boundary PASS; V1.0.5 CI final acceptance PASS; real local graduation script committed",
+  "execution_name": "V1.0 Real Local Graduation",
+  "execution_percent": 88,
+  "execution_state": "AWAITING_LOCAL_ACCEPTANCE",
+  "execution_step": "Run the final two-stage Windows graduation: first prove fail-closed approval_required, then explicitly approve and require GOAL_COMPLETE",
+  "execution_detail": "scripts/manual_v100_real_final_acceptance.py now connects the final natural-language entrypoint to ProductServiceHost, real Research/Coding/Brain Computer backends, user-facing progress reporting and the V1.0 approval boundary. The first run intentionally stops at approval_required before the real Computer action. The second run requires the operator to add --approve, after which ProductRuntime resumes the waiting task, requires GOAL_COMPLETE and 100% durable progress, then restarts the service and verifies the completed goal survives the lifecycle transition.",
+  "execution_result": "All CI acceptance is green; local real-backend graduation is the only remaining V1.0 gate.",
   "execution_error": "",
-  "current_work": "Verify the complete final product acceptance path against the historical regression suite.",
-  "next_step": "If CI is green, add the real local V1.0 graduation script using the existing Research/Coding/Brain Computer backends, keep real Computer execution behind explicit approval, then run one final local acceptance on the user's Windows host before marking V1.0 100% DONE.",
+  "current_work": "Await the user's Windows host to perform the final real-backend acceptance.",
+  "next_step": "Pull ai/v1.0-final-integration and run scripts/manual_v100_real_final_acceptance.py without --approve. Review the one declared real action. Then re-run with --approve. Mark V1.0 100% DONE only if the output reaches APPROVED, GOAL_COMPLETE, PROGRESS = 100%, RESULT = DONE and service restart preservation passes.",
   "finish_line": "V1.0 graduates when one natural-language goal can enter the final product boundary, survive service lifecycle changes, expose live progress, pause safely for explicit real-action approval, continue autonomously through recovery/verification, and finish GOAL_COMPLETE with no manual internal orchestration plumbing.",
-  "user_action": "None until the local graduation command is ready."
+  "user_action": "Run the final two-stage local graduation command when ready."
 }
