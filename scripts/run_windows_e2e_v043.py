@@ -8,6 +8,10 @@ from typing import Any
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 DEFAULT_PATH = "/task/windows/e2e"
+# Source of truth recovered from the local Brain implementation:
+# allowed_actions = {"click", "type", "hotkey"}
+KNOWN_BRAIN_ACTIONS = ("click", "type", "hotkey")
+SAFE_MOCK_ACTION = "click"
 
 
 def fetch_json(url: str) -> dict[str, Any]:
@@ -74,11 +78,15 @@ def safe_scalar(name: str, schema: dict[str, Any]) -> Any:
         return "v043-windows-e2e"
     if lowered in {"step_id", "index", "sequence"}:
         return 1
-    if lowered in {"action", "action_type", "kind", "type"}:
-        raise RuntimeError(
-            f"OpenAPI exposes no enum/default/example for required action field {name!r}; "
-            "refusing to guess a Windows action."
-        )
+    if lowered in {"action", "action_type"}:
+        # OpenAPI does not publish the action enum. The local Brain source does:
+        # click / type / hotkey. Use click only in mock mode; real actions remain disabled.
+        return SAFE_MOCK_ACTION
+    if lowered in {"kind", "type"}:
+        choice = first_schema_choice(schema)
+        if choice is not None:
+            return choice
+        raise RuntimeError(f"No safe schema value for discriminator {name!r}")
     if lowered in {"text", "value", "content", "instruction", "description", "goal"}:
         return "V0.4.3 mock-only E2E"
     if lowered in {"x", "y", "duration", "delay_ms", "timeout_ms", "retries"}:
@@ -114,7 +122,6 @@ def build_object(openapi: dict[str, Any], schema: dict[str, Any], *, context: st
             prop = {}
         lowered = name.lower()
 
-        # Always force the outer safety gates to safe values.
         if context == "request" and lowered == "mock":
             result[name] = True
             continue
@@ -123,7 +130,6 @@ def build_object(openapi: dict[str, Any], schema: dict[str, Any], *, context: st
             continue
 
         include = name in required
-        # Include discriminators/action fields even when optional so Brain sees a legal step.
         if context == "step" and lowered in {"action", "action_type", "kind", "type"}:
             include = True
         if not include:
@@ -168,6 +174,12 @@ def assert_safe_payload(payload: dict[str, Any]) -> None:
     steps = payload.get("steps")
     if not isinstance(steps, list) or not steps:
         raise RuntimeError("Safety/semantic refusal: no valid Windows E2E step could be generated")
+    for step in steps:
+        if not isinstance(step, dict):
+            raise RuntimeError("Safety/semantic refusal: invalid step object")
+        action = str(step.get("action", ""))
+        if action not in KNOWN_BRAIN_ACTIONS:
+            raise RuntimeError(f"Safety refusal: action {action!r} is not in Brain's verified allowlist")
 
 
 def post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -215,6 +227,7 @@ def main() -> int:
     openapi_url = base + "/openapi.json"
     print(f"OPENAPI = {openapi_url}")
     print(f"TARGET  = POST {args.path}")
+    print(f"ALLOWLIST = {', '.join(KNOWN_BRAIN_ACTIONS)}")
 
     try:
         openapi = fetch_json(openapi_url)
@@ -232,7 +245,7 @@ def main() -> int:
 
     if not args.send_dry_run:
         print("RESULT  = SCHEMA_READY")
-        print("NEXT    = Re-run with --send-dry-run only if the generated action is a legal OpenAPI value.")
+        print("NEXT    = Re-run with --send-dry-run; the selected action is from Brain's verified allowlist.")
         return 0
 
     try:
@@ -251,7 +264,7 @@ def main() -> int:
         return 2
 
     print("RESULT  = DONE")
-    print("MESSAGE = Legal mock Windows E2E completed with real actions disabled.")
+    print("MESSAGE = Brain accepted a verified legal Windows action in mock mode; real actions remained disabled.")
     return 0
 
 
