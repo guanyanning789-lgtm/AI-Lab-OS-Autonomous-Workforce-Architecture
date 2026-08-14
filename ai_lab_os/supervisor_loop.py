@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable
 
+from ai_lab_os.execution_history import JsonExecutionHistory
 from ai_lab_os.persistent_goal_store import JsonGoalStore, PersistentGoalState, PersistentTaskState
 from ai_lab_os.task_planner import PlannedTask, TaskPlanContract
 from ai_lab_os.task_state import PlanRuntimeState, TaskLifecycleStatus
@@ -128,6 +129,16 @@ def _persist_runtime(
     )
 
 
+def _record_terminal_history(
+    history_store: JsonExecutionHistory | None,
+    goal_store: JsonGoalStore | None,
+    goal_id: str,
+) -> None:
+    if history_store is None or goal_store is None:
+        return
+    history_store.append_goal_state(goal_store.load(goal_id))
+
+
 def run_supervisor_loop(
     plan: TaskPlanContract,
     executor: TaskExecutor,
@@ -135,8 +146,9 @@ def run_supervisor_loop(
     policy: SupervisorPolicy | None = None,
     goal_store: JsonGoalStore | None = None,
     resume_state: PersistentGoalState | None = None,
+    history_store: JsonExecutionHistory | None = None,
 ) -> SupervisorRunResult:
-    """Drive or resume one task plan while optionally persisting every transition."""
+    """Drive or resume one task plan, persist live state, and optionally record terminal history."""
 
     policy = policy or SupervisorPolicy()
     if resume_state is not None:
@@ -155,6 +167,7 @@ def run_supervisor_loop(
             completed = tuple(task.task_id for task in plan.tasks)
             events.append("GOAL_COMPLETE")
             _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="complete")
+            _record_terminal_history(history_store, goal_store, plan.goal_id)
             return SupervisorRunResult(plan.goal_id, "complete", cycles, completed, message="All planned tasks completed successfully.", events=events)
 
         task_id = runtime.next_ready_task_id()
@@ -163,6 +176,7 @@ def run_supervisor_loop(
             if replan_task is not None:
                 events.append(f"REPLAN_REQUIRED:{replan_task}")
                 _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="replan_required")
+                _record_terminal_history(history_store, goal_store, plan.goal_id)
                 return SupervisorRunResult(
                     goal_id=plan.goal_id,
                     status="replan_required",
@@ -173,6 +187,7 @@ def run_supervisor_loop(
                     events=events,
                 )
             _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="blocked")
+            _record_terminal_history(history_store, goal_store, plan.goal_id)
             return SupervisorRunResult(
                 goal_id=plan.goal_id,
                 status="blocked",
@@ -223,6 +238,7 @@ def run_supervisor_loop(
         _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
     _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events, goal_status="cycle_limit")
+    _record_terminal_history(history_store, goal_store, plan.goal_id)
     return SupervisorRunResult(
         goal_id=plan.goal_id,
         status="cycle_limit",
@@ -239,9 +255,17 @@ def resume_supervisor_from_store(
     goal_store: JsonGoalStore,
     *,
     policy: SupervisorPolicy | None = None,
+    history_store: JsonExecutionHistory | None = None,
 ) -> SupervisorRunResult:
     """Reload a persisted goal after process restart and continue unfinished work."""
 
     persisted = goal_store.load(goal_id)
     plan = TaskPlanContract.from_dict(persisted.plan)
-    return run_supervisor_loop(plan, executor, policy=policy, goal_store=goal_store, resume_state=persisted)
+    return run_supervisor_loop(
+        plan,
+        executor,
+        policy=policy,
+        goal_store=goal_store,
+        resume_state=persisted,
+        history_store=history_store,
+    )
