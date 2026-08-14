@@ -12,6 +12,7 @@ if str(REPO_ROOT) not in sys.path:
 from ai_lab_os.storage_cleanup_plan import build_cleanup_plan, render_cleanup_plan
 from ai_lab_os.storage_collision_guard import guard_plan
 from ai_lab_os.storage_curator import StoragePlan, build_storage_plan
+from ai_lab_os.storage_decision_groups import build_decision_groups, render_decision_groups
 from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
 from ai_lab_os.storage_path_planner import build_migration_plan
 
@@ -35,19 +36,19 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2.1 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.2 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
-    parser.add_argument("--max-items", type=int, default=40)
+    parser.add_argument("--max-items", type=int, default=25)
     args = parser.parse_args()
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2.1 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.2 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
-    print("INTEL  = project boundaries + version-family grouping enabled")
+    print("INTEL  = project boundaries + version families + decision grouping")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
@@ -75,8 +76,11 @@ def main() -> int:
     proposals = build_migration_plan(storage.candidates)
     guards = guard_plan(proposals)
     cleanup = build_cleanup_plan(storage, guards)
+    groups = build_decision_groups(cleanup, families)
 
     print(render_cleanup_plan(cleanup, max_items=max(1, args.max_items)))
+    print()
+    print(render_decision_groups(groups))
     print()
     print("VERSION FAMILIES:")
     if not families:
@@ -88,12 +92,14 @@ def main() -> int:
     if len(families) > 20:
         print(f"  ... {len(families) - 20} more families")
     print()
-    print(f"VERSION_FAMILIES = {len(families)}")
-    print(f"SCANNED_FILES    = {storage.scanned_files}")
-    print(f"TRUNCATED        = {storage.truncated}")
-    print("EXECUTED         = False")
-    print("RESULT           = PREVIEW_ONLY")
-    print("MESSAGE          = Project/dependency files are protected and version archives are grouped before any real approval stage.")
+    print(f"RAW_APPROVAL_ITEMS = {cleanup.approval_items}")
+    print(f"DECISION_GROUPS    = {len(groups)}")
+    print(f"VERSION_FAMILIES   = {len(families)}")
+    print(f"SCANNED_FILES      = {storage.scanned_files}")
+    print(f"TRUNCATED          = {storage.truncated}")
+    print("EXECUTED           = False")
+    print("RESULT             = PREVIEW_ONLY")
+    print("MESSAGE            = Review grouped decisions, not thousands of individual files, before any real approval stage.")
     return 0
 
 
