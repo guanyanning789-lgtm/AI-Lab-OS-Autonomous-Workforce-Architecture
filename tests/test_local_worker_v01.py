@@ -8,9 +8,11 @@ class FakeBrain:
     def __init__(self, repository: Path):
         self.repository = repository
         self.calls = 0
+        self.requests = []
 
     def repair(self, request):
         self.calls += 1
+        self.requests.append(request)
         (self.repository / "math_ops.py").write_text(
             "def multiply(a, b):\n    return a * b\n",
             encoding="utf-8",
@@ -65,6 +67,8 @@ def test_worker_repairs_failed_test_via_brain(tmp_path):
             task_id="task-repair",
             repository_path=str(repo),
             branch="main",
+            goal="Fix multiply so it returns the product of two inputs.",
+            success_criteria=("multiply(6, 7) returns 42", "pytest passes"),
             tests=("python -m pytest test_math_ops.py -q",),
             allow_cline_repair=True,
             allowed_files=("math_ops.py",),
@@ -77,6 +81,11 @@ def test_worker_repairs_failed_test_via_brain(tmp_path):
     assert result.tests_passed is True
     assert result.attempts_used == 2
     assert "math_ops.py" in result.changed_files
+    prompt = brain.requests[0].task
+    assert "Fix multiply so it returns the product" in prompt
+    assert "multiply(6, 7) returns 42" in prompt
+    assert "math_ops.py" in prompt
+    assert "assert 13 == 42" in prompt
 
 
 def test_worker_requires_allowed_files_for_repair(tmp_path):
