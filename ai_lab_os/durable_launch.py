@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from ai_lab_os.execution_history import JsonExecutionHistory
 from ai_lab_os.goal_intake import GoalIntakeRequest
-from ai_lab_os.intake_router import IntakeRoutingResult, intake_and_route
+from ai_lab_os.intake_skill_router import IntakeRoutingResult, intake_and_route
 from ai_lab_os.persistent_goal_store import JsonGoalStore
 from ai_lab_os.skill_registry import SkillRegistry
 from ai_lab_os.supervisor_loop import SupervisorPolicy, SupervisorRunResult, TaskExecutor, run_supervisor_loop
