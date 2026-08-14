@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable
 
+from ai_lab_os.persistent_goal_store import JsonGoalStore, PersistentGoalState, PersistentTaskState
 from ai_lab_os.task_planner import PlannedTask, TaskPlanContract
 from ai_lab_os.task_state import PlanRuntimeState, TaskLifecycleStatus
 
@@ -53,29 +54,104 @@ def _planned_task(plan: TaskPlanContract, task_id: str) -> PlannedTask:
     raise KeyError(f"unknown task_id: {task_id}")
 
 
+def _persist_runtime(
+    store: JsonGoalStore | None,
+    plan: TaskPlanContract,
+    runtime: PlanRuntimeState,
+    *,
+    cycles: int,
+    events: list[str],
+    goal_status: str | None = None,
+) -> None:
+    if store is None:
+        return
+
+    try:
+        previous = store.load(plan.goal_id)
+        created_at = previous.created_at
+    except LookupError:
+        previous = None
+        created_at = PersistentGoalState.from_plan(plan).created_at
+
+    task_states = tuple(
+        PersistentTaskState(
+            task_id=task.task_id,
+            status=runtime.tasks[task.task_id].status.value,
+            attempts=runtime.tasks[task.task_id].attempts,
+            message=runtime.tasks[task.task_id].last_error or "",
+            evidence=(
+                previous_task.evidence
+                if previous is not None
+                and (previous_task := next(
+                    (item for item in previous.tasks if item.task_id == task.task_id),
+                    None,
+                )) is not None
+                else ()
+            ),
+        )
+        for task in plan.tasks
+    )
+
+    resume_cursor = next(
+        (
+            task.task_id
+            for task in plan.tasks
+            if runtime.tasks[task.task_id].status is not TaskLifecycleStatus.COMPLETE
+        ),
+        None,
+    )
+    if goal_status is None:
+        if runtime.all_complete():
+            goal_status = "complete"
+        elif any(state.status is TaskLifecycleStatus.REPLAN for state in runtime.tasks.values()):
+            goal_status = "replan_required"
+        elif any(state.status is TaskLifecycleStatus.RUNNING for state in runtime.tasks.values()):
+            goal_status = "running"
+        else:
+            goal_status = "in_progress"
+
+    store.save(
+        PersistentGoalState(
+            goal_id=plan.goal_id,
+            status=goal_status,
+            plan=plan.to_dict(),
+            tasks=task_states,
+            resume_cursor=resume_cursor,
+            cycles=cycles,
+            events=tuple(events),
+            created_at=created_at,
+            schema_version="0.6.2",
+        )
+    )
+
+
 def run_supervisor_loop(
     plan: TaskPlanContract,
     executor: TaskExecutor,
     *,
     policy: SupervisorPolicy | None = None,
+    goal_store: JsonGoalStore | None = None,
 ) -> SupervisorRunResult:
-    """Drive one task plan until the goal completes or requires replanning.
-
-    V0.3.4 intentionally keeps task execution behind a callback. Agent routing and
-    real worker dispatch are added in the next milestone, while this loop owns the
-    orchestration semantics: select READY work, run it, update state, recover, and
-    stop only when the goal is complete or cannot safely continue.
-    """
+    """Drive one task plan until complete/replan while optionally persisting every transition."""
 
     policy = policy or SupervisorPolicy()
     runtime = PlanRuntimeState.from_plan(plan)
     events: list[str] = []
     cycles = 0
+    _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
     while cycles < policy.max_cycles:
         if runtime.all_complete():
             completed = tuple(task.task_id for task in plan.tasks)
             events.append("GOAL_COMPLETE")
+            _persist_runtime(
+                goal_store,
+                plan,
+                runtime,
+                cycles=cycles,
+                events=events,
+                goal_status="complete",
+            )
             return SupervisorRunResult(
                 goal_id=plan.goal_id,
                 status="complete",
@@ -97,6 +173,14 @@ def run_supervisor_loop(
             )
             if replan_task is not None:
                 events.append(f"REPLAN_REQUIRED:{replan_task}")
+                _persist_runtime(
+                    goal_store,
+                    plan,
+                    runtime,
+                    cycles=cycles,
+                    events=events,
+                    goal_status="replan_required",
+                )
                 return SupervisorRunResult(
                     goal_id=plan.goal_id,
                     status="replan_required",
@@ -111,6 +195,14 @@ def run_supervisor_loop(
                     events=events,
                 )
 
+            _persist_runtime(
+                goal_store,
+                plan,
+                runtime,
+                cycles=cycles,
+                events=events,
+                goal_status="blocked",
+            )
             return SupervisorRunResult(
                 goal_id=plan.goal_id,
                 status="blocked",
@@ -128,6 +220,7 @@ def run_supervisor_loop(
         state = runtime.tasks[task_id]
         state.transition(TaskLifecycleStatus.RUNNING)
         events.append(f"RUNNING:{task_id}:attempt={state.attempts}")
+        _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
         task = _planned_task(plan, task_id)
         try:
@@ -141,15 +234,18 @@ def run_supervisor_loop(
         if result.status is TaskExecutionStatus.SUCCESS:
             runtime.mark_complete(task_id)
             events.append(f"COMPLETE:{task_id}")
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
             continue
 
         error = result.message.strip() or "task execution failed"
         runtime.mark_failed(task_id, error)
         events.append(f"FAILED:{task_id}:{error}")
+        _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
         if result.status is TaskExecutionStatus.NEEDS_REPLAN:
             runtime.request_recovery(task_id, TaskLifecycleStatus.REPLAN)
             events.append(f"REPLAN:{task_id}")
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
             continue
 
         if state.attempts < policy.max_attempts_per_task:
@@ -160,11 +256,21 @@ def run_supervisor_loop(
             )
             runtime.request_recovery(task_id, strategy)
             events.append(f"{strategy.value.upper()}:{task_id}")
+            _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
             continue
 
         runtime.request_recovery(task_id, TaskLifecycleStatus.REPLAN)
         events.append(f"REPLAN:{task_id}")
+        _persist_runtime(goal_store, plan, runtime, cycles=cycles, events=events)
 
+    _persist_runtime(
+        goal_store,
+        plan,
+        runtime,
+        cycles=cycles,
+        events=events,
+        goal_status="cycle_limit",
+    )
     return SupervisorRunResult(
         goal_id=plan.goal_id,
         status="cycle_limit",
