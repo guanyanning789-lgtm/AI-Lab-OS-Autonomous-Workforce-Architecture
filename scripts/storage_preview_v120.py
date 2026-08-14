@@ -11,7 +11,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from ai_lab_os.storage_cleanup_plan import build_cleanup_plan, render_cleanup_plan
 from ai_lab_os.storage_collision_guard import guard_plan
-from ai_lab_os.storage_curator import build_storage_plan
+from ai_lab_os.storage_curator import StoragePlan, build_storage_plan
+from ai_lab_os.storage_intelligence import apply_project_boundaries, build_version_families
 from ai_lab_os.storage_path_planner import build_migration_plan
 
 
@@ -34,7 +35,7 @@ def existing_user_roots() -> tuple[Path, ...]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Storage Curator V1.2 real read-only preview")
+    parser = argparse.ArgumentParser(description="Storage Curator V1.2.1 real read-only preview")
     parser.add_argument("--max-files", type=int, default=100000)
     parser.add_argument("--duplicate-min-mb", type=int, default=100)
     parser.add_argument("--max-items", type=int, default=40)
@@ -42,10 +43,11 @@ def main() -> int:
 
     roots = existing_user_roots()
     print("=" * 78)
-    print("STORAGE CURATOR V1.2 REAL STORAGE PREVIEW")
+    print("STORAGE CURATOR V1.2.1 REAL STORAGE PREVIEW")
     print("=" * 78)
     print("MODE   = READ ONLY")
     print("SAFETY = no delete, move, rename, quarantine or write operations")
+    print("INTEL  = project boundaries + version-family grouping enabled")
     print("ROOTS:")
     for root in roots:
         print(f"  {root}")
@@ -56,22 +58,42 @@ def main() -> int:
         print("ERROR  = no configured preview roots exist")
         return 1
 
-    storage = build_storage_plan(
+    raw = build_storage_plan(
         roots,
         max_files=max(1, args.max_files),
         duplicate_min_bytes=max(1, args.duplicate_min_mb) * 1024 * 1024,
     )
+    bounded_candidates = apply_project_boundaries(raw.candidates)
+    storage = StoragePlan(
+        candidates=bounded_candidates,
+        duplicates=raw.duplicates,
+        reclaimable_bytes=raw.reclaimable_bytes,
+        scanned_files=raw.scanned_files,
+        truncated=raw.truncated,
+    )
+    families = build_version_families(bounded_candidates)
     proposals = build_migration_plan(storage.candidates)
     guards = guard_plan(proposals)
     cleanup = build_cleanup_plan(storage, guards)
 
     print(render_cleanup_plan(cleanup, max_items=max(1, args.max_items)))
     print()
-    print(f"SCANNED_FILES = {storage.scanned_files}")
-    print(f"TRUNCATED     = {storage.truncated}")
-    print("EXECUTED      = False")
-    print("RESULT        = PREVIEW_ONLY")
-    print("MESSAGE       = Review this plan before any real Storage Curator approval/execution stage.")
+    print("VERSION FAMILIES:")
+    if not families:
+        print("  none")
+    for family in families[:20]:
+        print(f"  {family.family}: {len(family.members)} files; latest=v{family.latest.raw_version}")
+        print(f"    latest     = {family.latest.path}")
+        print(f"    historical = {len(family.historical)}")
+    if len(families) > 20:
+        print(f"  ... {len(families) - 20} more families")
+    print()
+    print(f"VERSION_FAMILIES = {len(families)}")
+    print(f"SCANNED_FILES    = {storage.scanned_files}")
+    print(f"TRUNCATED        = {storage.truncated}")
+    print("EXECUTED         = False")
+    print("RESULT           = PREVIEW_ONLY")
+    print("MESSAGE          = Project/dependency files are protected and version archives are grouped before any real approval stage.")
     return 0
 
 
