@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +31,25 @@ def current_branch(repository: Path) -> str:
     if completed.returncode != 0 or not branch:
         raise RuntimeError("Cannot determine current git branch")
     return branch
+
+
+def check_searxng(base_url: str) -> tuple[bool, str]:
+    """Verify the real SearXNG JSON search endpoint before entering Supervisor retry logic."""
+    params = urllib.parse.urlencode({"q": "pytest", "format": "json"})
+    url = base_url.rstrip("/") + "/search?" + params
+    request = urllib.request.Request(url, headers={"Accept": "application/json"}, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8", errors="replace"))
+    except urllib.error.HTTPError as exc:
+        return False, f"HTTP {exc.code}"
+    except urllib.error.URLError as exc:
+        return False, str(exc.reason)
+    except Exception as exc:
+        return False, str(exc)
+    if not isinstance(payload, dict):
+        return False, "search response was not a JSON object"
+    return True, "online"
 
 
 def build_plan() -> TaskPlanContract:
@@ -95,6 +118,16 @@ def main() -> int:
     print(f"BRAIN    = {args.brain_base_url}")
     print(f"SEARXNG  = {args.searxng_base_url}")
     print("SAFETY   = Computer real actions disabled (approved=false, dry_run=true)")
+    print()
+
+    searxng_ok, searxng_detail = check_searxng(args.searxng_base_url)
+    if not searxng_ok:
+        print("PREFLIGHT = FAILED")
+        print("ERROR     = RESEARCH_BACKEND_OFFLINE")
+        print(f"DETAIL    = {searxng_detail}")
+        print("RESULT    = FAILED")
+        return 2
+    print("PREFLIGHT = SearXNG online")
     print()
 
     config = MultiAgentRuntimeConfig(
