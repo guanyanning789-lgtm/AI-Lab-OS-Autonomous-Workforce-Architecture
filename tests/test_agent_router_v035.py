@@ -4,7 +4,7 @@ import pytest
 
 from ai_lab_os.agent_router import AgentRouter
 from ai_lab_os.models import AgentKind
-from ai_lab_os.supervisor_loop import TaskExecutionResult
+from ai_lab_os.supervisor_loop import TaskExecutionResult, TaskExecutionStatus
 from ai_lab_os.task_planner import PlannedTask, PlannedTaskKind
 
 
@@ -21,7 +21,10 @@ def _task(agent: AgentKind) -> PlannedTask:
 
 def _executor(label: str):
     def run(task: PlannedTask) -> TaskExecutionResult:
-        return TaskExecutionResult(success=True, message=f"{label}:{task.task_id}")
+        return TaskExecutionResult(
+            status=TaskExecutionStatus.SUCCESS,
+            message=f"{label}:{task.task_id}",
+        )
 
     return run
 
