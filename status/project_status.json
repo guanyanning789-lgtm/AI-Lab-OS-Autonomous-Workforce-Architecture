@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 65,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS (66 tests); V0.4.3 Computer Executor adapter PASS in CI (71 tests); Brain allowlist recovered as click/type/hotkey",
-  "execution_name": "V0.4.3 Real Computer Executor",
-  "execution_percent": 98,
+  "percent": 78,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor PASS; V0.4.3 Computer Executor DONE with local Brain mock E2E; V0.4.4 Runtime Composition implementation + tests committed",
+  "execution_name": "V0.4.4 Runtime Composition",
+  "execution_percent": 70,
   "execution_state": "RUNNING",
-  "execution_step": "Run final guarded mock E2E with Brain-supported click action",
-  "execution_detail": "The local Brain source is now the source of truth: allowed_actions = {click, type, hotkey}. The V0.4.3 runner has been updated to select click while enforcing mock=true and allow_real_actions=false, so the request can validate semantic acceptance without physically clicking the desktop.",
+  "execution_step": "Run full regression CI for Supervisor -> AgentRouter -> Coding/Research/Computer composition",
+  "execution_detail": "The three executor adapters are now composed behind one AgentRouter. The Computer default runtime path uses the verified BrainWindowsE2EBackend contract (task_id + steps + mock + allow_real_actions), not the obsolete generic payload. Tests cover three-agent registration, dependency-ordered routing to GOAL_COMPLETE, safe Brain defaults, payload mapping, and fail-closed unsupported actions.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Await one final local mock POST using the verified allowlist.",
-  "next_step": "Pull the V0.4 branch and run run_windows_e2e_v043.py with --send-dry-run. If Brain returns no errors and an accepted/completed status, mark V0.4.3 DONE and immediately begin V0.4.4 Runtime Composition.",
-  "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
-  "user_action": "Run the final guarded mock E2E command. Real Windows actions remain disabled."
+  "current_work": "Verify V0.4.4 composition against the complete regression suite.",
+  "next_step": "If CI is green, mark V0.4.4 DONE and immediately begin V0.4.5 Real Multi-Agent E2E. If red, repair only the composition/Brain adapter mismatch and rerun.",
+  "finish_line": "V0.4 completes when Coding, Research, and Computer tasks run together behind Supervisor/AgentRouter in one real multi-agent E2E reaching GOAL_COMPLETE.",
+  "user_action": "None. Keep the V0.4 execution monitor open."
 }
