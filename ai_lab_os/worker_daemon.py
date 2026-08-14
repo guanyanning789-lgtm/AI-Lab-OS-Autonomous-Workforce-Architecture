@@ -17,6 +17,8 @@ from ai_lab_os.worker_protocol import load_task, write_result
 
 
 SleepFn = Callable[[float], None]
+_LAST_STATUS_FINGERPRINT: str | None = None
+_LAST_IDLE_MESSAGE: str | None = None
 
 
 class WorkerCodeUpdated(RuntimeError):
@@ -30,6 +32,7 @@ class DaemonConfig:
     results_dir: str = "results"
     managed_repositories_file: str = "managed_repositories.json"
     verification_request_file: str = "verification/request.json"
+    project_status_file: str = "status/project_status.json"
     poll_seconds: float = 15.0
     publish_results: bool = True
     pull_before_scan: bool = True
@@ -79,6 +82,44 @@ def _sync_managed(config: DaemonConfig, repository: Path) -> None:
             f"MANAGED REPO {result.name} = {result.status}{suffix}",
             flush=True,
         )
+
+
+def _print_project_status(config: DaemonConfig, repository: Path) -> None:
+    global _LAST_STATUS_FINGERPRINT
+
+    status_path = repository / config.project_status_file
+    if not status_path.exists():
+        return
+
+    try:
+        payload = json.loads(status_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"PROJECT STATUS ERROR = {exc}", flush=True)
+        return
+
+    fingerprint = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    if fingerprint == _LAST_STATUS_FINGERPRINT:
+        return
+    _LAST_STATUS_FINGERPRINT = fingerprint
+
+    milestone = str(payload.get("milestone") or "unknown")
+    progress = str(payload.get("progress") or "unknown")
+    current = str(payload.get("current_work") or "not specified")
+    next_step = str(payload.get("next_step") or "not specified")
+    finish_line = str(payload.get("finish_line") or "not specified")
+    user_action = str(payload.get("user_action") or "None")
+
+    print("", flush=True)
+    print("=" * 72, flush=True)
+    print("AI LAB OS DEVELOPMENT STATUS", flush=True)
+    print(f"MILESTONE = {milestone}", flush=True)
+    print(f"PROGRESS = {progress}", flush=True)
+    print(f"NOW = {current}", flush=True)
+    print(f"NEXT = {next_step}", flush=True)
+    print(f"FINISH LINE = {finish_line}", flush=True)
+    print(f"USER ACTION = {user_action}", flush=True)
+    print("=" * 72, flush=True)
+    print("", flush=True)
 
 
 def _print_verification_request(config: DaemonConfig, repository: Path) -> None:
@@ -132,6 +173,7 @@ def process_once(config: DaemonConfig) -> list[str]:
         raise WorkerCodeUpdated("worker code updated from GitHub")
 
     _sync_managed(config, repository)
+    _print_project_status(config, repository)
     _print_verification_request(config, repository)
 
     processed: list[str] = []
@@ -170,6 +212,8 @@ def _restart_daemon() -> None:
 
 
 def run_daemon(config: DaemonConfig, *, sleep_fn: SleepFn = time.sleep) -> None:
+    global _LAST_IDLE_MESSAGE
+
     if config.poll_seconds <= 0:
         raise ValueError("poll_seconds must be > 0")
 
@@ -177,9 +221,14 @@ def run_daemon(config: DaemonConfig, *, sleep_fn: SleepFn = time.sleep) -> None:
         try:
             processed = process_once(config)
             if processed:
-                print("PROCESSED = " + ", ".join(processed), flush=True)
+                message = "PROCESSED = " + ", ".join(processed)
+                print(message, flush=True)
+                _LAST_IDLE_MESSAGE = None
             else:
-                print("IDLE = no pending tasks", flush=True)
+                message = "IDLE = waiting for next GitHub task | no user action required"
+                if message != _LAST_IDLE_MESSAGE:
+                    print(message, flush=True)
+                    _LAST_IDLE_MESSAGE = message
         except WorkerCodeUpdated:
             _restart_daemon()
         except Exception as exc:
