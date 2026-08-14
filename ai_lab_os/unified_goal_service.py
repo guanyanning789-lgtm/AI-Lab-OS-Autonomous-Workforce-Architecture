@@ -25,10 +25,14 @@ class GoalSubmissionRequest:
     metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if not self.goal.strip():
+        goal = self.goal.strip()
+        if not goal:
             raise ValueError("goal must not be empty")
         if self.goal_id is not None and not self.goal_id.strip():
             raise ValueError("goal_id must not be blank when provided")
+        if any(not isinstance(key, str) or not isinstance(value, str) for key, value in self.metadata.items()):
+            raise ValueError("metadata keys and values must be strings")
+        object.__setattr__(self, "goal", goal)
 
 
 @dataclass(frozen=True)
@@ -75,12 +79,12 @@ class UnifiedGoalService:
 
     def submit_goal(self, request: GoalSubmissionRequest) -> GoalSubmissionResult:
         intake = GoalIntakeRequest(
-            natural_language_goal=request.goal,
+            request=request.goal,
             goal_id=request.goal_id,
             success_criteria=request.success_criteria,
             constraints=request.constraints,
             priority=request.priority,
-            metadata=request.metadata,
+            metadata=dict(request.metadata),
         )
         result = launch_with_recovery_handoff(
             intake,
