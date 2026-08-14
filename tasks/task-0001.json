@@ -1,0 +1,13 @@
+{
+  "task_id": "task-0001-real-brain-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "tests": [
+    "python -m pytest test_math_ops.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
