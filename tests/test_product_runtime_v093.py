@@ -26,7 +26,7 @@ def test_runtime_submit_query_and_events_share_one_durable_store(tmp_path) -> No
     store = JsonGoalStore(tmp_path / "goals.json")
 
     def executor(task):
-        return TaskExecutionResult(TaskExecutionStatus.SUCCESS, "done", evidence=("proof",))
+        return TaskExecutionResult(TaskExecutionStatus.SUCCESS, "done")
 
     runtime = ProductRuntime(_registry(), executor, store)
     result = runtime.submit(GoalSubmissionRequest(goal="请研究 pytest", goal_id="goal-runtime"))
@@ -35,7 +35,7 @@ def test_runtime_submit_query_and_events_share_one_durable_store(tmp_path) -> No
     assert result.status == "complete"
     assert snapshot.status == "complete"
     assert snapshot.progress_percent == 100
-    assert snapshot.tasks[0].evidence == ("proof",)
+    assert snapshot.tasks[0].evidence == ()
     assert "GOAL_COMPLETE" in runtime.get_events("goal-runtime")
 
 
