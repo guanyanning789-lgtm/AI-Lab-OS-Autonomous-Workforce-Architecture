@@ -1,0 +1,10 @@
+{
+  "repositories": [
+    {
+      "name": "brain-v1.1",
+      "path": "C:\\AI-Lab\\brain",
+      "branch": "ai/v1.1-coding-agent",
+      "enabled": true
+    }
+  ]
+}
