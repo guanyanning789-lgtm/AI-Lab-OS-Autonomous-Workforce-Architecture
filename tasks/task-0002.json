@@ -1,0 +1,11 @@
+{
+  "task_id": "task-0002-daemon-auto-pickup",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "tests": [
+    "python -m pytest test_math_ops.py -q"
+  ],
+  "allow_cline_repair": false,
+  "allowed_files": [],
+  "max_attempts": 1
+}
