@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 from ai_lab_os.local_worker import run_task
+from ai_lab_os.managed_repositories import sync_managed_repositories
 from ai_lab_os.result_publisher import publish_result_file
 from ai_lab_os.worker_protocol import load_task, write_result
 
@@ -26,9 +27,11 @@ class DaemonConfig:
     repository_path: str
     tasks_dir: str = "tasks"
     results_dir: str = "results"
+    managed_repositories_file: str = "managed_repositories.json"
     poll_seconds: float = 15.0
     publish_results: bool = True
     pull_before_scan: bool = True
+    sync_managed_repositories: bool = True
 
 
 def _run_git(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -64,6 +67,18 @@ def _safe_pull(repository: Path) -> bool:
     return before != after
 
 
+def _sync_managed(config: DaemonConfig, repository: Path) -> None:
+    if not config.sync_managed_repositories:
+        return
+    config_path = repository / config.managed_repositories_file
+    for result in sync_managed_repositories(config_path):
+        suffix = f" | {result.message}" if result.message else ""
+        print(
+            f"MANAGED REPO {result.name} = {result.status}{suffix}",
+            flush=True,
+        )
+
+
 def discover_pending_tasks(config: DaemonConfig) -> list[Path]:
     repository = Path(config.repository_path).resolve()
     tasks_root = repository / config.tasks_dir
@@ -86,6 +101,8 @@ def process_once(config: DaemonConfig) -> list[str]:
     repository = Path(config.repository_path).resolve()
     if config.pull_before_scan and _safe_pull(repository):
         raise WorkerCodeUpdated("worker code updated from GitHub")
+
+    _sync_managed(config, repository)
 
     processed: list[str] = []
     for task_path in discover_pending_tasks(config):
@@ -146,6 +163,7 @@ def main() -> int:
     parser.add_argument("--poll-seconds", type=float, default=15.0)
     parser.add_argument("--no-publish", action="store_true")
     parser.add_argument("--no-pull", action="store_true")
+    parser.add_argument("--no-managed-sync", action="store_true")
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
 
@@ -154,6 +172,7 @@ def main() -> int:
         poll_seconds=args.poll_seconds,
         publish_results=not args.no_publish,
         pull_before_scan=not args.no_pull,
+        sync_managed_repositories=not args.no_managed_sync,
     )
 
     if args.once:
