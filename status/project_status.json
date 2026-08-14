@@ -1,16 +1,16 @@
 {
   "milestone": "V0.4 Multi-Agent Runtime",
-  "percent": 24,
-  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor started",
+  "percent": 34,
+  "progress": "V0.4.1 Coding Executor PASS; V0.4.2 Research Executor implementation + tests committed",
   "execution_name": "V0.4.2 Real Research Executor",
-  "execution_percent": 10,
+  "execution_percent": 65,
   "execution_state": "RUNNING",
-  "execution_step": "Implement pluggable SearXNG-backed ResearchExecutor",
-  "execution_detail": "Build a real Research executor behind the AgentRouter contract without changing Supervisor semantics. It will query a configurable local SearXNG endpoint, return structured evidence, fail closed for non-research tasks, and keep network access mockable in tests.",
+  "execution_step": "Run full regression CI for SearXNG-backed ResearchExecutor",
+  "execution_detail": "Research tasks can now query a configurable local SearXNG endpoint and return structured source evidence. Tests cover success, max-source limits, empty results, backend failure, and fail-closed behavior for non-research agents.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Connect Research tasks to a real local web-search backend.",
-  "next_step": "Implement ResearchClient + ResearchExecutor, add tests for success/empty/error/non-research cases, run full regression CI, then mark V0.4.2 DONE.",
+  "current_work": "Verify V0.4.2 against the full regression suite.",
+  "next_step": "If CI is green, mark V0.4.2 DONE and begin V0.4.3 Computer Executor. If red, repair only the Research adapter and rerun.",
   "finish_line": "V0.4 completes when Coding, Research, and Computer tasks can be dispatched to real executors behind the proven Supervisor and AgentRouter contracts, with a real multi-agent E2E reaching GOAL_COMPLETE.",
   "user_action": "None. Keep the V0.4 execution monitor open."
 }
