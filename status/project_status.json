@@ -1,16 +1,16 @@
 {
   "milestone": "V0.3 Supervisor Runtime",
-  "percent": 86,
-  "progress": "V0.3.1 PASS; V0.3.2 PASS; V0.3.3 PASS; V0.3.4 PASS; V0.3.5 Agent Router PASS after contract-alignment repair",
+  "percent": 90,
+  "progress": "V0.3.1 PASS; V0.3.2 PASS; V0.3.3 PASS; V0.3.4 PASS; V0.3.5 PASS; V0.3.6 E2E harness committed",
   "execution_name": "V0.3.6 Real Multi-Step E2E",
-  "execution_percent": 25,
+  "execution_percent": 60,
   "execution_state": "RUNNING",
-  "execution_step": "Build end-to-end supervisor graduation test",
-  "execution_detail": "Wire GoalContract -> deterministic Planner -> mixed-agent TaskPlan -> Supervisor Loop -> AgentRouter. The coding executor will intentionally fail once so RETRY recovery must occur before GOAL_COMPLETE.",
+  "execution_step": "Run full GitHub Actions pytest for the graduation test",
+  "execution_detail": "The E2E now routes Research -> Coding -> Computer, intentionally fails the first Coding attempt, requires Supervisor RETRY recovery, then verifies GOAL_COMPLETE. Waiting for full regression CI.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Building the V0.3.6 graduation test harness.",
-  "next_step": "Commit the E2E test, run full pytest in GitHub Actions, inspect failures if any, and mark DONE only after GOAL_COMPLETE evidence is verified.",
+  "current_work": "Full regression verification for V0.3.6.",
+  "next_step": "Inspect GitHub Actions. If green, verify the E2E assertions include RETRY and GOAL_COMPLETE, then mark V0.3 DONE. If red, repair the failing integration and rerun.",
   "finish_line": "V0.3 completes when one natural-language goal can be planned, routed through the supervisor state machine, executed across tasks, recovered on failure, and reported as GOAL COMPLETE in a real multi-step E2E.",
   "user_action": "None. Keep the execution monitor open."
 }
