@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from ai_lab_os.agent_router import AgentRouter
 from ai_lab_os.coding_executor import CodingExecutor, CodingExecutorConfig
-from ai_lab_os.computer_executor import ComputerExecutor, HttpComputerBackend
+from ai_lab_os.computer_executor import BrainWindowsE2EBackend, ComputerExecutor
 from ai_lab_os.research_executor import ResearchExecutor, SearXNGResearchClient
 from ai_lab_os.supervisor_loop import SupervisorPolicy, SupervisorRunResult, run_supervisor_loop
 from ai_lab_os.task_planner import TaskPlanContract
@@ -50,7 +50,7 @@ def build_core_router(
         max_sources=config.research_max_sources,
     )
     computer = computer_executor or ComputerExecutor(
-        HttpComputerBackend(
+        BrainWindowsE2EBackend(
             base_url=config.brain_base_url,
             path=config.computer_path,
         ),
