@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import string
 from dataclasses import dataclass
 
@@ -19,14 +20,29 @@ class _StrictTemplateValues(dict[str, str]):
         raise ValueError(f"unknown skill template variable: {key}")
 
 
+def _is_json_literal(template: str) -> bool:
+    """Return True when template is already a complete JSON object/array literal."""
+
+    text = template.strip()
+    if not text or text[0] not in "[{":
+        return False
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(parsed, (dict, list))
+
+
 def _has_named_template_field(template: str) -> bool:
     """Return True only when a format string contains a named field.
 
-    Literal JSON such as `{}` or `{"x":1}` must remain unchanged. Skill
-    templates intentionally support named fields like `{topic}` but not
+    Literal JSON such as `{}` or `{"target":"100,100"}` must remain unchanged.
+    Skill templates intentionally support named fields like `{topic}` but not
     positional fields.
     """
 
+    if _is_json_literal(template):
+        return False
     try:
         for _literal, field_name, _format_spec, _conversion in string.Formatter().parse(template):
             if field_name is None:
