@@ -1,0 +1,20 @@
+{
+  "task_id": "task-0007-final-v02-autonomous-repair",
+  "repository_path": "C:\\AI-Lab\\worker-v01-smoke",
+  "branch": "main",
+  "goal": "Implement harmonic_mean(values) in math_ops.py. It must return n divided by the sum of reciprocals for a non-empty list of non-zero numeric values.",
+  "success_criteria": [
+    "math_ops.py defines harmonic_mean(values)",
+    "harmonic_mean([1, 2, 4]) returns 12/7",
+    "the specified pytest verification passes",
+    "only math_ops.py may be modified"
+  ],
+  "tests": [
+    "python -m pytest C:\\AI-Lab\\ai-lab-os\\tests\\e2e_task_0007_target.py -q"
+  ],
+  "allow_cline_repair": true,
+  "allowed_files": [
+    "math_ops.py"
+  ],
+  "max_attempts": 2
+}
