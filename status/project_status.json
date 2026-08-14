@@ -1,16 +1,16 @@
 {
   "milestone": "V0.5 Skill System",
-  "percent": 28,
-  "progress": "V0.4 Multi-Agent Runtime frozen at 100%; V0.5.1 SkillContract committed; V0.5 branch CI enabled; V0.5.2 SkillRegistry implementation and tests committed",
-  "execution_name": "V0.5.2 SkillRegistry",
+  "percent": 48,
+  "progress": "V0.5.1 SkillContract PASS; V0.5.2 SkillRegistry PASS; V0.5.3 executable SkillStepSpec templates and Skill-to-TaskPlan compiler committed",
+  "execution_name": "V0.5.3 Skill -> TaskPlan Compiler",
   "execution_percent": 70,
   "execution_state": "RUNNING",
-  "execution_step": "Run full regression CI for SkillContract + SkillRegistry",
-  "execution_detail": "The V0.5 branch is now covered by GitHub Actions. SkillRegistry adds deterministic register/get/replace/unregister/list/manifest operations with duplicate rejection and fail-closed missing-skill lookup. This gives the OS one catalog for future IELTS, email, cooking, content, Life Inbox, and other skills.",
+  "execution_step": "Run full regression CI for SkillStepSpec templates and deterministic TaskPlan compilation",
+  "execution_detail": "SkillContract now supports executable ordered step templates with agent, task kind, dependencies, per-step success criteria, and metadata templates. compile_skill_plan binds required/default inputs, renders templates strictly, translates skill-local dependencies into TaskPlan task ids, carries skill identity/version/permissions into task metadata, and produces the existing TaskPlanContract consumed by the V0.4 Supervisor runtime.",
   "execution_result": "執行中...",
   "execution_error": "",
-  "current_work": "Verify V0.5.1 and V0.5.2 against the complete regression suite.",
-  "next_step": "If CI is green, mark V0.5.1/V0.5.2 DONE and begin V0.5.3 Skill-to-TaskPlan Compiler. If red, repair only the skill contract/registry compatibility issue and rerun.",
+  "current_work": "Verify V0.5.3 compiler compatibility against the complete regression suite.",
+  "next_step": "If CI is green, mark V0.5.3 DONE and begin V0.5.4 Natural-Language Skill Selection / Routing. If red, repair only the SkillContract/compiler compatibility issue and rerun.",
   "finish_line": "V0.5 completes when natural-language intent can select a registered skill, bind inputs, compile it into a TaskPlanContract, and execute it through the V0.4 multi-agent runtime.",
   "user_action": "None. Keep the V0.5 watcher open."
 }
